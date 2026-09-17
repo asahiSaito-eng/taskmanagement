@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今日のタスク管理 - Google Sheets Connect</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .progress-bar-fill {
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .task-card {
+            transition: all 0.25s ease-in-out;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+        }
+        .focus-gradient {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <div id="app" class="pb-16">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+            <div class="max-w-4xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2.5 bg-indigo-600 text-white rounded-xl shadow-md shadow-indigo-100">
+                        <i data-lucide="book-open" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900 tracking-tight">受験・学習タスク管理</h1>
+                        <p id="current-date-display" class="text-xs text-slate-500 font-medium">2026年9月17日 (木)</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button id="sync-btn" onclick="toggleImportModal(true)" class="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                        <span>スケジュール一括編集</span>
+                    </button>
+                    <button onclick="resetToDefaultSchedule()" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition" title="初期スケジュールに戻す">
+                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sync Status Banner -->
+        <div id="sync-status-banner" class="max-w-4xl mx-auto px-4 pt-3 hidden">
+            <div id="sync-status-content" class="px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-between shadow-sm">
+                <span id="sync-status-text">同期中...</span>
+                <button onclick="document.getElementById('sync-status-banner').classList.add('hidden')" class="opacity-70 hover:opacity-100 text-current ml-2">✕</button>
+            </div>
+        </div>
+
+        <main class="max-w-4xl mx-auto px-4 pt-4 space-y-6">
+            <!-- Progress Section -->
+            <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="trending-up" class="w-5 h-5 text-indigo-600"></i> 進捗状況
+                        </h2>
+                        <p class="text-xs text-slate-500">本日の達成度</p>
+                    </div>
+                    <div class="text-right">
+                        <span id="progress-percent" class="text-3xl font-extrabold text-indigo-600">0%</span>
+                        <p id="progress-count" class="text-xs text-slate-500 font-medium">0 / 0 タスク完了</p>
+                    </div>
+                </div>
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-100 h-4 rounded-full overflow-hidden p-0.5 border border-slate-200/50">
+                    <div id="progress-fill" class="progress-bar-fill h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full w-0 shadow-sm"></div>
+                </div>
+                <p id="encouragement-msg" class="text-xs text-slate-500 mt-2 text-right italic">タスクを開始して今日を最高の1日にしましょう！</p>
+            </section>
+
+            <!-- Next Up / Focus Task Card -->
+            <section id="focus-section" class="focus-gradient text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold text-white uppercase tracking-wider">
+                        <i data-lucide="zap" class="w-3.5 h-3.5 text-yellow-300"></i> 次にやるべきこと (Next Focus)
+                    </span>
+                    <span id="focus-priority-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-slate-900">
+                        優先度: 高
+                    </span>
+                </div>
+
+                <div id="focus-task-container" class="my-4">
+                    <h3 id="focus-task-title" class="text-2xl font-bold tracking-tight text-white mb-2">
+                        読み込み中...
+                    </h3>
+                    <p id="focus-task-desc" class="text-indigo-100 text-sm leading-relaxed line-clamp-2">
+                        スプレッドシートから今日のタスクを取得しています。
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-white/20">
+                    <div class="flex items-center space-x-4 text-xs text-indigo-100">
+                        <span id="focus-task-time" class="flex items-center gap-1"><i data-lucide="clock" class="w-3.5 h-3.5"></i> --:--</span>
+                        <span id="focus-task-category" class="flex items-center gap-1"><i data-lucide="tag" class="w-3.5 h-3.5"></i> 一般</span>
+                    </div>
+
+                    <button id="focus-complete-btn" onclick="completeCurrentFocusTask()" class="w-full sm:w-auto px-6 py-3 bg-white hover:bg-slate-100 text-indigo-700 font-bold rounded-xl shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2 active:scale-95">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-indigo-600"></i>
+                        <span>完了して次へ進む</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Task List Header & Filters -->
+            <section class="space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="list-todo" class="w-5 h-5 text-indigo-600"></i> 今日のタスク一覧
+                    </h3>
+
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <!-- Quick Add Input -->
+                        <button onclick="toggleAddTaskModal(true)" class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition shadow-sm">
+                            <i data-lucide="plus" class="w-4 h-4"></i> タスク追加
+                        </button>
+
+                        <!-- Date Filter -->
+                        <select id="filter-date" onchange="renderAll()" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                            <option value="today" selected>📅 今日 (9/17) のタスク</option>
+                            <option value="9/17">9/17 (木)</option>
+                            <option value="9/18">9/18 (金)</option>
+                            <option value="9/19">9/19 (土)</option>
+                            <option value="9/20">9/20 (日)</option>
+                            <option value="9/21">9/21 (月)</option>
+                            <option value="9/22">9/22 (火)</option>
+                            <option value="9/23">9/23 (水)</option>
+                            <option value="9/24">9/24 (木)</option>
+                            <option value="9/25">9/25 (金)</option>
+                            <option value="9/26">9/26 (土)</option>
+                            <option value="9/27">9/27 (日)</option>
+                            <option value="all">🌐 全期間のタスク</option>
+                        </select>
+
+                        <select id="filter-status" onchange="renderTasks()" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="all">すべてのステータス</option>
+                            <option value="pending" selected>未完了のみ</option>
+                            <option value="completed">完了済み</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Task List Cards Container -->
+                <div id="task-list" class="space-y-3">
+                    <!-- Tasks injected by JavaScript -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-5">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="sheet" class="w-5 h-5 text-emerald-600"></i> Googleスプレッドシート連携
+                </h3>
+                <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-sm text-slate-600">
+                <div>
+                    <label class="block font-medium text-slate-700 mb-1">スプレッドシート URL または ID</label>
+                    <input type="text" id="sheet-id-input" value="1gNADRf786FzNJCLMHVq6T9spHwC09BZ_6B3ESMg-fQI" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <p class="text-xs text-slate-400 mt-1">※ スプレッドシートは「リンクを知っている全員が閲覧可能」に設定されている必要があります。</p>
+                </div>
+    <!-- Text Import Modal -->
+    <div id="import-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-5 h-5 text-indigo-600"></i> スケジュールテキスト一括読み込み
+                </h3>
+                <button onclick="toggleImportModal(false)" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-2 text-sm">
+                <p class="text-xs text-slate-500">下記にスケジュールテキストを貼り付けて「解析して読み込む」を押すと、自動で日付ごとのタスクに分解・登録されます。</p>
+                <textarea id="schedule-raw-input" rows="8" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none leading-relaxed"></textarea>
+            </div>
+
+            <div class="flex justify-between items-center pt-2 border-t border-slate-100">
+                <button onclick="resetToDefaultSchedule()" class="text-xs text-rose-600 hover:underline font-medium">初期テキストを復元</button>
+                <div class="flex gap-2">
+                    <button onclick="toggleImportModal(false)" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 text-sm">キャンセル</button>
+                    <button onclick="applyCustomTextSchedule()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition">解析して読み込む</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="add-task-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-900">新しいタスクを追加</h3>
+                <button onclick="toggleAddTaskModal(false)" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">タスク名 *</label>
+                    <input type="text" id="new-task-title" placeholder="例: スライド資料の作成" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">詳細・メモ</label>
+                    <textarea id="new-task-desc" rows="2" placeholder="詳細を入力..." class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">優先度</label>
+                        <select id="new-task-priority" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="高">高 (High)</option>
+                            <option value="中" selected>中 (Medium)</option>
+                            <option value="低">低 (Low)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">予定時間</label>
+                        <input type="time" id="new-task-time" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button onclick="toggleAddTaskModal(false)" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 text-sm">キャンセル</button>
+                <button onclick="addNewTask()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition">追加</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // デフォルトスケジュールテキスト
+        const DEFAULT_SCHEDULE_TEXT = `9/17
+axis p.4〜8
+
+9/18
+axis p.9〜13
+
+9/19
+axis p.14〜20, 22〜28
+【1周目】物理p.120〜127
+
+9/20
+axis p.29〜32
+化学p.44〜55指定問題
+【1周目】物理p.141〜155
+
+9/21
+錬成古文11, 14, 15, 16
+化学p.56〜61指定問題, p.62〜75
+【1周目】物理p.156〜160
+
+9/22
+錬成漢文10,11,14,16
+com全範囲
+論表全範囲
+化学p.76〜81
+
+9/23
+錬成現代文11〜20 / 「×」整理
+古典「×」がついた問題の整理
+axis「×」がついた問題の整理
+com「×」がついた問題の整理
+論表「×」がついた問題の整理
+化学「×」がついた問題の整理
+物理「×」がついた問題の整理
+
+9/24
+axis 1周目で間違えた問題から厳選
+
+9/25
+物理1周目で間違えた問題から厳選
+
+9/26
+現国解き直し（「×」クリア）
+古典解き直し（「×」クリア）
+com解き直し（「×」クリア）
+論表解き直し（「×」クリア）
+化学解き直し（「×」クリア）
+
+9/27
+現国最終チェック
+古典最終チェック
+axis 最終チェック
+com最終チェック
+論表最終チェック
+化学最終チェック
+物理最終チェック`;
+
+        let tasks = [];
+
+        // 日付文字列から科目・分類を推測する補助関数
+        function detectCategory(title) {
+            if (title.includes('axis')) return '英語(axis)';
+            if (title.includes('物理')) return '物理';
+            if (title.includes('化学')) return '化学';
+            if (title.includes('古文') || title.includes('漢文') || title.includes('現代文') || title.includes('現国') || title.includes('古典')) return '国語';
+            if (title.includes('com') || title.includes('論表')) return '英語';
+            return '一般';
+        }
+
+        // テキストを解析してタスクの配列を作成
+        function parseScheduleText(rawText) {
+            const parsed = [];
+            // 日付パターン(例: 9/17, 9/18 など)で分割
+            const lines = rawText.split(/\r?\n/);
+            let currentDate = '9/17';
+
+            lines.forEach((line, idx) => {
+                const trimmed = line.trim();
+                if (!trimmed) return;
+
+                // 日付の行の判定 (例: 9/17, 9/20)
+                const dateMatch = trimmed.match(/^(9\/\d{1,2})/);
+                if (dateMatch && trimmed.length <= 6) {
+                    currentDate = dateMatch[1];
+                    // 日付のみの行で後ろにテキストがある場合の処理
+                    const rest = trimmed.replace(dateMatch[1], '').trim();
+                    if (rest) {
+                        parsed.push(createTaskObject(currentDate, rest, idx));
+                    }
+                } else if (trimmed.match(/^9\/\d{1,2}/)) {
+                    // 日付とタスクが同じ行にある場合 (例: 9/17axis p.4〜8)
+                    const m = trimmed.match(/^(9\/\d{1,2})(.*)/);
+                    currentDate = m[1];
+                    if (m[2].trim()) {
+                        parsed.push(createTaskObject(currentDate, m[2].trim(), idx));
+                    }
+                } else {
+                    parsed.push(createTaskObject(currentDate, trimmed, idx));
+                }
+            });
+
+            return parsed;
+        }
+
+        function createTaskObject(dateStr, title, index) {
+            // 優先度の自動分類（「×」クリア、間違えた問題、最終チェック、指定問題は「高」）
+            let priority = '中';
+            if (title.includes('1周目') || title.includes('指定問題') || title.includes('厳選') || title.includes('最終チェック') || title.includes('×')) {
+                priority = '高';
+            }
+
+            return {
+                id: `task-${dateStr.replace('/', '-')}-${index}-${Date.now()}`,
+                date: dateStr,
+                isToday: dateStr === '9/17', // 今日は9/17として取り扱い
+                title: title,
+                desc: `予定日: ${dateStr}`,
+                priority: priority,
+                status: 'pending',
+                time: '',
+                category: detectCategory(title)
+            };
+        }
+
+        function isTodayDate(rawVal, formattedVal) {
+            const strToTest = String(formattedVal || rawVal || '').trim();
+            if (!strToTest) return true;
+            return strToTest === '9/17' || strToTest.includes('9/17') || strToTest.includes('9月17日');
+        }
+
+        function getActiveTasks() {
+            const filterDate = document.getElementById('filter-date') ? document.getElementById('filter-date').value : 'today';
+            
+            if (filterDate === 'today') {
+                return tasks.filter(t => t.date === '9/17' || t.isToday || t.category === '手動追加');
+            } else if (filterDate === 'all') {
+                return tasks;
+            } else {
+                return tasks.filter(t => t.date === filterDate);
+            }
+        }
+
+        function toggleImportModal(show) {
+            const modal = document.getElementById('import-modal');
+            const textarea = document.getElementById('schedule-raw-input');
+            if (show) {
+                textarea.value = localStorage.getItem('study_schedule_raw_text') || DEFAULT_SCHEDULE_TEXT;
+            }
+            modal.classList.toggle('hidden', !show);
+        }
+
+        function applyCustomTextSchedule() {
+            const textarea = document.getElementById('schedule-raw-input');
+            const text = textarea.value.trim();
+            if (!text) return;
+
+            localStorage.setItem('study_schedule_raw_text', text);
+            tasks = parseScheduleText(text);
+            saveTasksToLocalStorage();
+            toggleImportModal(false);
+            renderAll();
+            showSyncStatus('新しいスケジュールを正常に読み込みました！', 'success');
+        }
+
+        function resetToDefaultSchedule() {
+            if (confirm('初期のスケジュールテキストに戻しますか？')) {
+                localStorage.removeItem('study_schedule_raw_text');
+                tasks = parseScheduleText(DEFAULT_SCHEDULE_TEXT);
+                saveTasksToLocalStorage();
+                renderAll();
+                toggleImportModal(false);
+                showSyncStatus('初期のスケジュールにリセットしました！', 'info');
+            }
+        }
+
+        function loadTasksFromLocalStorage() {
+            const storedTasks = localStorage.getItem('study_tasks_parsed_v2');
+            if (storedTasks) {
+                try {
+                    tasks = JSON.parse(storedTasks);
+                } catch(e) {
+                    tasks = parseScheduleText(DEFAULT_SCHEDULE_TEXT);
+                }
+            } else {
+                const rawText = localStorage.getItem('study_schedule_raw_text') || DEFAULT_SCHEDULE_TEXT;
+                tasks = parseScheduleText(rawText);
+                saveTasksToLocalStorage();
+            }
+        }
+
+        function saveTasksToLocalStorage() {
+            localStorage.setItem('study_tasks_parsed_v2', JSON.stringify(tasks));
+        }
+
+        function renderAll() {
+            renderFocusTask();
+            renderTasks();
+            updateProgressBar();
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+
+        function renderFocusTask() {
+            const focusTitle = document.getElementById('focus-task-title');
+            const focusDesc = document.getElementById('focus-task-desc');
+            const focusTime = document.getElementById('focus-task-time');
+            const focusCategory = document.getElementById('focus-task-category');
+            const focusPriorityBadge = document.getElementById('focus-priority-badge');
+            const focusBtn = document.getElementById('focus-complete-btn');
+
+            if (!focusTitle) return;
+
+            const activeTasks = getActiveTasks();
+            const pendingTasks = activeTasks.filter(t => t.status !== 'completed');
+
+            const priorityWeight = { '高': 3, '中': 2, '低': 1 };
+            pendingTasks.sort((a, b) => (priorityWeight[b.priority] || 1) - (priorityWeight[a.priority] || 1));
+
+            const currentFocus = pendingTasks[0];
+
+            if (currentFocus) {
+                focusTitle.textContent = currentFocus.title;
+                focusDesc.textContent = currentFocus.desc || `予定日: ${currentFocus.date}`;
+                focusTime.innerHTML = `<i data-lucide="clock" class="w-3.5 h-3.5"></i> ${currentFocus.time || '時間指定なし'}`;
+                focusCategory.innerHTML = `<i data-lucide="tag" class="w-3.5 h-3.5"></i> ${currentFocus.category || '一般'}`;
+                focusPriorityBadge.textContent = `優先度: ${currentFocus.priority}`;
+                
+                if (currentFocus.priority === '高') {
+                    focusPriorityBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-slate-900';
+                } else if (currentFocus.priority === '中') {
+                    focusPriorityBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-300 text-slate-900';
+                } else {
+                    focusPriorityBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-200 text-slate-700';
+                }
+
+                if (focusBtn) {
+                    focusBtn.style.display = 'inline-flex';
+                    focusBtn.onclick = () => completeTask(currentFocus.id, true);
+                }
+            } else {
+                const total = activeTasks.length;
+                if (total > 0) {
+                    focusTitle.textContent = '🎉 本日のすべてのタスクが完了しました！';
+                    focusDesc.textContent = '素晴らしい集中力です！ゆっくり休むか、新しいタスクを計画しましょう。';
+                } else {
+                    focusTitle.textContent = '該当するタスクはありません';
+                    focusDesc.textContent = '右上の「タスク追加」から新しい目標を設定しましょう。';
+                }
+                focusTime.innerHTML = `<i data-lucide="clock" class="w-3.5 h-3.5"></i> --:--`;
+                focusCategory.innerHTML = `<i data-lucide="tag" class="w-3.5 h-3.5"></i> 完了`;
+                focusPriorityBadge.textContent = '達成！';
+                focusPriorityBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-400 text-slate-900';
+                if (focusBtn) focusBtn.style.display = 'none';
+            }
+        }
+
+        function renderTasks() {
+            const taskListEl = document.getElementById('task-list');
+            const filterStatus = document.getElementById('filter-status') ? document.getElementById('filter-status').value : 'all';
+            
+            if (!taskListEl) return;
+
+            let displayTasks = getActiveTasks();
+
+            if (filterStatus === 'pending') {
+                displayTasks = displayTasks.filter(t => t.status !== 'completed');
+            } else if (filterStatus === 'completed') {
+                displayTasks = displayTasks.filter(t => t.status === 'completed');
+            }
+
+            if (displayTasks.length === 0) {
+                taskListEl.innerHTML = `
+                    <div class="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300 p-6">
+                        <i data-lucide="check-circle-2" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
+                        <p class="text-slate-500 text-sm font-medium">表示できるタスクはありません</p>
+                        <p class="text-xs text-slate-400 mt-1">フィルターを変更するか、新しいタスクを追加してください。</p>
+                    </div>
+                `;
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+
+            taskListEl.innerHTML = displayTasks.map(task => {
+                const isDone = task.status === 'completed';
+                const pColor = task.priority === '高' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                               task.priority === '中' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                               'bg-slate-100 text-slate-700 border-slate-300';
+
+                return `
+                    <div class="task-card bg-white rounded-xl p-4 border ${isDone ? 'border-slate-200 bg-slate-50/60 opacity-75' : 'border-slate-200 shadow-sm'} flex items-start justify-between gap-3 transition">
+                        <div class="flex items-start gap-3.5 flex-1 min-w-0">
+                            <button onclick="toggleTaskStatus('${task.id}')" class="mt-0.5 shrink-0 rounded-lg p-1 transition ${isDone ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-100'}">
+                                <i data-lucide="${isDone ? 'check-square' : 'square'}" class="w-5 h-5"></i>
+                            </button>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap items-center gap-2 mb-1">
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded-md border ${pColor}">${task.priority}</span>
+                                    <span class="text-xs font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">${task.category || '一般'}</span>
+                                    <span class="text-xs text-slate-400 font-mono">📅 ${task.date}</span>
+                                    ${task.time ? `<span class="text-xs text-slate-400 font-mono">⏰ ${task.time}</span>` : ''}
+                                </div>
+                                <h4 class="text-sm font-semibold text-slate-800 ${isDone ? 'line-through text-slate-400' : ''} leading-snug break-words">${escapeHtml(task.title)}</h4>
+                                ${task.desc ? `<p class="text-xs text-slate-500 mt-1 line-clamp-2">${escapeHtml(task.desc)}</p>` : ''}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1 shrink-0">
+                            <select onchange="updateTaskPriority('${task.id}', this.value)" class="text-xs border border-slate-200 rounded px-1.5 py-1 text-slate-600 bg-slate-50 hover:bg-white focus:outline-none">
+                                <option value="高" ${task.priority === '高' ? 'selected' : ''}>高</option>
+                                <option value="中" ${task.priority === '中' ? 'selected' : ''}>中</option>
+                                <option value="低" ${task.priority === '低' ? 'selected' : ''}>低</option>
+                            </select>
+                            <button onclick="deleteTask('${task.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="削除">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function updateProgressBar() {
+            const activeTasks = getActiveTasks();
+            const total = activeTasks.length;
+            const completed = activeTasks.filter(t => t.status === 'completed').length;
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            const percentEl = document.getElementById('progress-percent');
+            const countEl = document.getElementById('progress-count');
+            const fillEl = document.getElementById('progress-fill');
+            const msgEl = document.getElementById('encouragement-msg');
+
+            if (percentEl) percentEl.textContent = `${percent}%`;
+            if (countEl) countEl.textContent = `${completed} / ${total} タスク完了`;
+            if (fillEl) fillEl.style.width = `${percent}%`;
+
+            if (msgEl) {
+                if (total === 0) {
+                    msgEl.textContent = 'タスクを登録して今日の計画を立てましょう！';
+                } else if (percent === 100) {
+                    msgEl.textContent = '素晴らしい！すべてのタスクを完了しました！🎉';
+                } else if (percent >= 75) {
+                    msgEl.textContent = 'あと少し！ゴールはすぐそこです！🔥';
+                } else if (percent >= 50) {
+                    msgEl.textContent = '半分達成！この調子で頑張りましょう！✨';
+                } else if (percent > 0) {
+                    msgEl.textContent = '順調なスタートです！着実に進めましょう💪';
+                } else {
+                    msgEl.textContent = 'タスクを開始して今日を最高の1日にしましょう！';
+                }
+            }
+        }
+
+        function toggleTaskStatus(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                task.status = task.status === 'completed' ? 'pending' : 'completed';
+                if (task.status === 'completed' && typeof confetti === 'function') {
+                    confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
+                }
+                saveTasksToLocalStorage();
+                renderAll();
+            }
+        }
+
+        function completeTask(taskId, triggerEffects = true) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                task.status = 'completed';
+                if (triggerEffects && typeof confetti === 'function') {
+                    confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
+                }
+                saveTasksToLocalStorage();
+                renderAll();
+            }
+        }
+
+        function completeCurrentFocusTask() {
+            const activeTasks = getActiveTasks();
+            const pendingTasks = activeTasks.filter(t => t.status !== 'completed');
+            const priorityWeight = { '高': 3, '中': 2, '低': 1 };
+            pendingTasks.sort((a, b) => (priorityWeight[b.priority] || 1) - (priorityWeight[a.priority] || 1));
+
+            if (pendingTasks.length > 0) {
+                completeTask(pendingTasks[0].id, true);
+            }
+        }
+
+        function updateTaskPriority(taskId, newPriority) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                task.priority = newPriority;
+                saveTasksToLocalStorage();
+                renderAll();
+            }
+        }
+
+        function deleteTask(taskId) {
+            tasks = tasks.filter(t => t.id !== taskId);
+            saveTasksToLocalStorage();
+            renderAll();
+        }
+
+        function toggleAddTaskModal(show) {
+            const modal = document.getElementById('add-task-modal');
+            if (modal) {
+                modal.classList.toggle('hidden', !show);
+                if (show) {
+                    document.getElementById('new-task-title').value = '';
+                    document.getElementById('new-task-desc').value = '';
+                    document.getElementById('new-task-time').value = '';
+                }
+            }
+        }
+
+        function addNewTask() {
+            const titleInput = document.getElementById('new-task-title');
+            const descInput = document.getElementById('new-task-desc');
+            const priorityInput = document.getElementById('new-task-priority');
+            const timeInput = document.getElementById('new-task-time');
+            const filterDate = document.getElementById('filter-date') ? document.getElementById('filter-date').value : '9/17';
+
+            const title = titleInput.value.trim();
+            if (!title) {
+                showSyncStatus('タスク名を入力してください', 'error');
+                return;
+            }
+
+            const dateVal = (filterDate === 'all' || filterDate === 'today') ? '9/17' : filterDate;
+
+            const newTask = {
+                id: `task-manual-${Date.now()}`,
+                date: dateVal,
+                isToday: dateVal === '9/17',
+                title: title,
+                desc: descInput.value.trim(),
+                priority: priorityInput.value,
+                status: 'pending',
+                time: timeInput.value || '',
+                category: detectCategory(title)
+            };
+
+            tasks.unshift(newTask);
+            saveTasksToLocalStorage();
+            toggleAddTaskModal(false);
+            renderAll();
+            showSyncStatus('新しいタスクを追加しました！', 'success');
+        }
+
+        function toggleSettingsModal(show) {
+            const modal = document.getElementById('settings-modal');
+            if (modal) modal.classList.toggle('hidden', !show);
+        }
+
+        function showSyncStatus(msg, type = 'info') {
+            const banner = document.getElementById('sync-status-banner');
+            const content = document.getElementById('sync-status-content');
+            const text = document.getElementById('sync-status-text');
+
+            if (!banner || !content || !text) return;
+
+            text.textContent = msg;
+            if (type === 'success') {
+                content.className = 'px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-between shadow-sm bg-emerald-50 text-emerald-800 border border-emerald-200';
+            } else if (type === 'error') {
+                content.className = 'px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-between shadow-sm bg-rose-50 text-rose-800 border border-rose-200';
+            } else {
+                content.className = 'px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-between shadow-sm bg-indigo-50 text-indigo-800 border border-indigo-200';
+            }
+
+            banner.classList.remove('hidden');
+            setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 4000);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        window.onload = function() {
+            document.getElementById('current-date-display').textContent = '2026年9月17日 (木)';
+            loadTasksFromLocalStorage();
+            renderAll();
+        };
+    </script>
+</body>
+</html>
