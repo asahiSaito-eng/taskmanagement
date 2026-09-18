@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>今日のタスク管理 - Google Sheets Connect</title>
+    <title>受験・学習タスク管理 - Calendar & Focus</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -20,7 +20,7 @@
             transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .task-card {
-            transition: all 0.25s ease-in-out;
+            transition: all 0.2s ease-in-out;
         }
         .task-card:hover {
             transform: translateY(-2px);
@@ -28,170 +28,282 @@
         .focus-gradient {
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
         }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .calendar-day-cell {
+            min-height: 85px;
+        }
+        /* テスト・模試セルのハイライトスタイル */
+        .day-cell-exam {
+            background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%) !important;
+            border-color: #c084fc !important;
+        }
+        .day-cell-test {
+            background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%) !important;
+            border-color: #f43f5e !important;
+        }
+        @media (max-width: 640px) {
+            .calendar-day-cell {
+                min-height: 60px;
+            }
+        }
     </style>
 </head>
-<body class="text-slate-800 min-h-screen flex flex-col justify-between">
+<body class="text-slate-800 min-h-screen bg-slate-50 flex flex-col">
 
-    <div id="app" class="pb-16">
-        <!-- Header -->
-        <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-            <div class="max-w-4xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+    <div id="app" class="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-4 lg:px-6 flex flex-col">
+        
+        <!-- Top Navigation Bar Header -->
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm rounded-b-2xl mb-4 px-4 py-3">
+            <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center space-x-3">
-                    <div class="p-2.5 bg-indigo-600 text-white rounded-xl shadow-md shadow-indigo-100">
+                    <div class="p-2 bg-indigo-600 text-white rounded-xl shadow-md shadow-indigo-100">
                         <i data-lucide="book-open" class="w-6 h-6"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl font-bold text-slate-900 tracking-tight">受験・学習タスク管理</h1>
-                        <p id="current-date-display" class="text-xs text-slate-500 font-medium">2026年9月17日 (木)</p>
+                        <h1 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                            受験・学習タスク管理
+                            <span class="text-xs font-normal px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full">X-Style</span>
+                        </h1>
+                        <p id="current-date-display" class="text-xs text-slate-500 font-medium">読み込み中...</p>
                     </div>
                 </div>
 
                 <div class="flex items-center space-x-2">
-                    <button id="sync-btn" onclick="toggleImportModal(true)" class="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition">
-                        <i data-lucide="file-text" class="w-4 h-4"></i>
-                        <span>スケジュール一括編集</span>
+                    <button onclick="toggleAddTaskModal(true)" class="flex items-center space-x-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-sm">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">タスク追加</span>
                     </button>
-                    <button onclick="resetToDefaultSchedule()" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition" title="初期スケジュールに戻す">
+                    <button onclick="toggleImportModal(true)" class="flex items-center space-x-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-medium transition" title="スケジュール一括編集">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                        <span class="hidden md:inline">一括編集</span>
+                    </button>
+                    <button onclick="confirmResetSchedule()" class="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition" title="初期スケジュールに戻す">
                         <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
                     </button>
                 </div>
             </div>
         </header>
 
-        <!-- Sync Status Banner -->
-        <div id="sync-status-banner" class="max-w-4xl mx-auto px-4 pt-3 hidden">
-            <div id="sync-status-content" class="px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-between shadow-sm">
-                <span id="sync-status-text">同期中...</span>
-                <button onclick="document.getElementById('sync-status-banner').classList.add('hidden')" class="opacity-70 hover:opacity-100 text-current ml-2">✕</button>
+        <!-- Toast / Status Notification -->
+        <div id="sync-status-banner" class="fixed bottom-4 right-4 z-50 max-w-sm hidden">
+            <div id="sync-status-content" class="px-4 py-3 rounded-2xl text-xs sm:text-sm font-medium flex items-center justify-between shadow-xl border backdrop-blur-md">
+                <span id="sync-status-text">通知メッセージ</span>
+                <button onclick="document.getElementById('sync-status-banner').classList.add('hidden')" class="opacity-70 hover:opacity-100 text-current ml-3">✕</button>
             </div>
         </div>
 
-        <main class="max-w-4xl mx-auto px-4 pt-4 space-y-6">
-            <!-- Progress Section -->
-            <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
-                <div class="flex justify-between items-center mb-2">
-                    <div>
-                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                            <i data-lucide="trending-up" class="w-5 h-5 text-indigo-600"></i> 進捗状況
-                        </h2>
-                        <p class="text-xs text-slate-500">本日の達成度</p>
-                    </div>
-                    <div class="text-right">
-                        <span id="progress-percent" class="text-3xl font-extrabold text-indigo-600">0%</span>
-                        <p id="progress-count" class="text-xs text-slate-500 font-medium">0 / 0 タスク完了</p>
-                    </div>
-                </div>
-                <!-- Progress Bar -->
-                <div class="w-full bg-slate-100 h-4 rounded-full overflow-hidden p-0.5 border border-slate-200/50">
-                    <div id="progress-fill" class="progress-bar-fill h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full w-0 shadow-sm"></div>
-                </div>
-                <p id="encouragement-msg" class="text-xs text-slate-500 mt-2 text-right italic">タスクを開始して今日を最高の1日にしましょう！</p>
-            </section>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 pb-12">
 
-            <!-- Next Up / Focus Task Card -->
-            <section id="focus-section" class="focus-gradient text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
-                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-                <div class="flex items-center justify-between mb-3">
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold text-white uppercase tracking-wider">
-                        <i data-lucide="zap" class="w-3.5 h-3.5 text-yellow-300"></i> 次にやるべきこと (Next Focus)
-                    </span>
-                    <span id="focus-priority-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-slate-900">
-                        優先度: 高
-                    </span>
-                </div>
-
-                <div id="focus-task-container" class="my-4">
-                    <h3 id="focus-task-title" class="text-2xl font-bold tracking-tight text-white mb-2">
-                        読み込み中...
-                    </h3>
-                    <p id="focus-task-desc" class="text-indigo-100 text-sm leading-relaxed line-clamp-2">
-                        スプレッドシートから今日のタスクを取得しています。
-                    </p>
-                </div>
-
-                <div class="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-white/20">
-                    <div class="flex items-center space-x-4 text-xs text-indigo-100">
-                        <span id="focus-task-time" class="flex items-center gap-1"><i data-lucide="clock" class="w-3.5 h-3.5"></i> --:--</span>
-                        <span id="focus-task-category" class="flex items-center gap-1"><i data-lucide="tag" class="w-3.5 h-3.5"></i> 一般</span>
-                    </div>
-
-                    <button id="focus-complete-btn" onclick="completeCurrentFocusTask()" class="w-full sm:w-auto px-6 py-3 bg-white hover:bg-slate-100 text-indigo-700 font-bold rounded-xl shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2 active:scale-95">
-                        <i data-lucide="check-circle" class="w-5 h-5 text-indigo-600"></i>
-                        <span>完了して次へ進む</span>
+            <!-- LEFT SIDEBAR: Navigation & Quick Stats (3 Cols on Desktop) -->
+            <aside class="lg:col-span-3 space-y-4 order-2 lg:order-1">
+                <!-- Navigation Box -->
+                <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">メニュー</h3>
+                    <button onclick="jumpToToday()" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 font-bold text-sm transition">
+                        <span class="flex items-center gap-2.5">
+                            <i data-lucide="calendar-check-2" class="w-4 h-4 text-indigo-600"></i>
+                            今日へ移動
+                        </span>
+                        <span id="badge-today-count" class="px-2 py-0.5 text-xs bg-indigo-600 text-white rounded-full font-semibold">0</span>
+                    </button>
+                    <button onclick="filterByPriority('高')" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-sm transition">
+                        <span class="flex items-center gap-2.5">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-amber-500"></i>
+                            高優先度タスク
+                        </span>
+                        <span id="badge-high-priority" class="px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded-full font-semibold">0</span>
+                    </button>
+                    <button onclick="toggleImportModal(true)" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-sm transition">
+                        <span class="flex items-center gap-2.5">
+                            <i data-lucide="edit-3" class="w-4 h-4 text-slate-500"></i>
+                            テキスト編集
+                        </span>
                     </button>
                 </div>
-            </section>
 
-            <!-- Task List Header & Filters -->
-            <section class="space-y-4">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <i data-lucide="list-todo" class="w-5 h-5 text-indigo-600"></i> 今日のタスク一覧
-                    </h3>
+                <!-- Next Exam Countdown Widget -->
+                <div id="countdown-card" class="bg-gradient-to-br from-rose-500 to-fuchsia-600 rounded-2xl p-4 text-white shadow-md relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[11px] font-bold tracking-wider uppercase opacity-90 flex items-center gap-1">
+                            <i data-lucide="flag" class="w-3.5 h-3.5"></i> 直近の試験
+                        </span>
+                        <span id="countdown-days" class="text-xs font-black px-2 py-0.5 bg-white/20 rounded-full">あと - 日</span>
+                    </div>
+                    <h4 id="countdown-title" class="text-sm font-bold truncate">予定されている試験はありません</h4>
+                    <p id="countdown-date" class="text-[11px] opacity-80 mt-0.5">「タスク追加」からテスト/模試を登録</p>
+                </div>
 
-                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                        <!-- Quick Add Input -->
-                        <button onclick="toggleAddTaskModal(true)" class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition shadow-sm">
-                            <i data-lucide="plus" class="w-4 h-4"></i> タスク追加
+                <!-- Subject & Event Category Quick Legend -->
+                <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">凡例・カテゴリー</h3>
+                    <div class="space-y-2 text-xs font-medium">
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-md bg-fuchsia-100 border border-fuchsia-400"></span> 模試の日</span>
+                            <span id="count-type-mock" class="text-fuchsia-600 font-bold font-mono">0</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-md bg-rose-100 border border-rose-400"></span> 定期テスト日</span>
+                            <span id="count-type-test" class="text-rose-600 font-bold font-mono">0</span>
+                        </div>
+                        <hr class="my-1.5 border-slate-100">
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> 英語 / axis</span>
+                            <span id="count-cat-english" class="text-slate-400 font-mono">0</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500"></span> 物理</span>
+                            <span id="count-cat-physics" class="text-slate-400 font-mono">0</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 化学</span>
+                            <span id="count-cat-chemistry" class="text-slate-400 font-mono">0</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-600">
+                            <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> 国語 (現代文/古文/漢文)</span>
+                            <span id="count-cat-japanese" class="text-slate-400 font-mono">0</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- CENTER MAIN CONTENT: Interactive Calendar View (5 Cols on Desktop) -->
+            <main class="lg:col-span-5 space-y-4 order-1 lg:order-2">
+                <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm">
+                    <!-- Calendar Controls Header -->
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="calendar" class="w-5 h-5 text-indigo-600"></i>
+                            <h2 id="calendar-month-year" class="text-base sm:text-lg font-bold text-slate-800">2026年 9月</h2>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <button onclick="changeMonth(-1)" class="p-1.5 hover:bg-slate-100 text-slate-600 rounded-lg transition" title="前月">
+                                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                            </button>
+                            <button onclick="jumpToToday()" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
+                                今日
+                            </button>
+                            <button onclick="changeMonth(1)" class="p-1.5 hover:bg-slate-100 text-slate-600 rounded-lg transition" title="次月">
+                                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Day of Week Headers -->
+                    <div class="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-400 mb-2">
+                        <div class="text-rose-500">日</div>
+                        <div>月</div>
+                        <div>火</div>
+                        <div>水</div>
+                        <div>木</div>
+                        <div>金</div>
+                        <div class="text-sky-500">土</div>
+                    </div>
+
+                    <!-- Dynamic Calendar Grid -->
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-xs">
+                        <!-- Calendar cells generated via JS -->
+                    </div>
+                </div>
+            </main>
+
+            <!-- RIGHT SIDEBAR: Today's Tasks & Focus Card (4 Cols on Desktop) -->
+            <aside class="lg:col-span-4 space-y-4 order-3">
+                
+                <!-- Focus Next Task Card -->
+                <section id="focus-section" class="focus-gradient text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
+                    <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[11px] font-semibold text-white uppercase">
+                            <i data-lucide="zap" class="w-3 h-3 text-yellow-300"></i> Next Focus
+                        </span>
+                        <span id="focus-priority-badge" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-400 text-slate-900">
+                            優先度: 高
+                        </span>
+                    </div>
+
+                    <div id="focus-task-container" class="my-3">
+                        <h3 id="focus-task-title" class="text-lg font-bold tracking-tight text-white mb-1">
+                            タスクを選択中...
+                        </h3>
+                        <p id="focus-task-desc" class="text-indigo-100 text-xs leading-relaxed line-clamp-2">
+                            本日行うべき一番優先度の高い学習項目です。
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-white/20">
+                        <div class="flex items-center space-x-3 text-[11px] text-indigo-100">
+                            <span id="focus-task-category" class="flex items-center gap-1"><i data-lucide="tag" class="w-3 h-3"></i> 一般</span>
+                        </div>
+
+                        <button id="focus-complete-btn" onclick="completeCurrentFocusTask()" class="px-4 py-2 bg-white hover:bg-slate-100 text-indigo-700 font-bold rounded-xl shadow text-xs transition flex items-center gap-1.5 active:scale-95">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-indigo-600"></i>
+                            <span>完了する</span>
                         </button>
+                    </div>
+                </section>
 
-                        <!-- Date Filter -->
-                        <select id="filter-date" onchange="renderAll()" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
-                            <option value="today" selected>📅 今日 (9/17) のタスク</option>
-                            <option value="9/17">9/17 (木)</option>
-                            <option value="9/18">9/18 (金)</option>
-                            <option value="9/19">9/19 (土)</option>
-                            <option value="9/20">9/20 (日)</option>
-                            <option value="9/21">9/21 (月)</option>
-                            <option value="9/22">9/22 (火)</option>
-                            <option value="9/23">9/23 (水)</option>
-                            <option value="9/24">9/24 (木)</option>
-                            <option value="9/25">9/25 (金)</option>
-                            <option value="9/26">9/26 (土)</option>
-                            <option value="9/27">9/27 (日)</option>
-                            <option value="all">🌐 全期間のタスク</option>
-                        </select>
+                <!-- Progress Bar Section -->
+                <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <h2 class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <i data-lucide="trending-up" class="w-4 h-4 text-indigo-600"></i>
+                            <span id="progress-date-label">今日の進捗</span>
+                        </h2>
+                        <span id="progress-percent" class="text-xl font-extrabold text-indigo-600">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden p-0.5 border border-slate-200/50">
+                        <div id="progress-fill" class="progress-bar-fill h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full w-0 shadow-sm"></div>
+                    </div>
+                    <div class="flex justify-between items-center mt-2 text-[11px] text-slate-500">
+                        <span id="progress-count">0 / 0 タスク完了</span>
+                        <span id="encouragement-msg" class="italic text-indigo-600 font-medium">今日も頑張りましょう！</span>
+                    </div>
+                </section>
 
-                        <select id="filter-status" onchange="renderTasks()" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="all">すべてのステータス</option>
-                            <option value="pending" selected>未完了のみ</option>
+                <!-- Selected Date Task List Header & Controls -->
+                <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <div>
+                            <h3 id="selected-date-title" class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                                <i data-lucide="list-todo" class="w-4 h-4 text-indigo-600"></i>
+                                今日のタスク一覧
+                            </h3>
+                            <p id="selected-date-sub" class="text-[11px] text-slate-400">日付を選択して切り替え可能</p>
+                        </div>
+
+                        <!-- Status Filter -->
+                        <select id="filter-status" onchange="renderTasks()" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="all">すべて</option>
+                            <option value="pending" selected>未完了</option>
                             <option value="completed">完了済み</option>
                         </select>
                     </div>
-                </div>
 
-                <!-- Task List Cards Container -->
-                <div id="task-list" class="space-y-3">
-                    <!-- Tasks injected by JavaScript -->
-                </div>
-            </section>
-        </main>
+                    <!-- Scrollable Task List -->
+                    <div id="task-list" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
+                        <!-- Tasks dynamically injected -->
+                    </div>
+                </section>
+
+            </aside>
+        </div>
     </div>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-5">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <i data-lucide="sheet" class="w-5 h-5 text-emerald-600"></i> Googleスプレッドシート連携
-                </h3>
-                <button onclick="toggleSettingsModal(false)" class="text-slate-400 hover:text-slate-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-
-            <div class="space-y-4 text-sm text-slate-600">
-                <div>
-                    <label class="block font-medium text-slate-700 mb-1">スプレッドシート URL または ID</label>
-                    <input type="text" id="sheet-id-input" value="1gNADRf786FzNJCLMHVq6T9spHwC09BZ_6B3ESMg-fQI" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                    <p class="text-xs text-slate-400 mt-1">※ スプレッドシートは「リンクを知っている全員が閲覧可能」に設定されている必要があります。</p>
-                </div>
     <!-- Text Import Modal -->
     <div id="import-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 space-y-4">
             <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                 <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <i data-lucide="file-text" class="w-5 h-5 text-indigo-600"></i> スケジュールテキスト一括読み込み
+                    <i data-lucide="file-text" class="w-5 h-5 text-indigo-600"></i> スケジュール一括テキスト編集
                 </h3>
                 <button onclick="toggleImportModal(false)" class="text-slate-400 hover:text-slate-600">
                     <i data-lucide="x" class="w-5 h-5"></i>
@@ -199,15 +311,15 @@
             </div>
 
             <div class="space-y-2 text-sm">
-                <p class="text-xs text-slate-500">下記にスケジュールテキストを貼り付けて「解析して読み込む」を押すと、自動で日付ごとのタスクに分解・登録されます。</p>
-                <textarea id="schedule-raw-input" rows="8" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none leading-relaxed"></textarea>
+                <p class="text-xs text-slate-500">下記フォーマットでテキストを貼り付けると、全日程のスケジュールが一括解析・更新されます。</p>
+                <textarea id="schedule-raw-input" rows="10" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none leading-relaxed custom-scrollbar"></textarea>
             </div>
 
             <div class="flex justify-between items-center pt-2 border-t border-slate-100">
-                <button onclick="resetToDefaultSchedule()" class="text-xs text-rose-600 hover:underline font-medium">初期テキストを復元</button>
+                <button onclick="confirmResetSchedule()" class="text-xs text-rose-600 hover:underline font-medium">初期データを復元</button>
                 <div class="flex gap-2">
                     <button onclick="toggleImportModal(false)" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 text-sm">キャンセル</button>
-                    <button onclick="applyCustomTextSchedule()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition">解析して読み込む</button>
+                    <button onclick="applyCustomTextSchedule()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition">解析して保存</button>
                 </div>
             </div>
         </div>
@@ -217,7 +329,9 @@
     <div id="add-task-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
             <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                <h3 class="text-lg font-bold text-slate-900">新しいタスクを追加</h3>
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="plus-circle" class="w-5 h-5 text-indigo-600"></i> タスク・試験予定を追加
+                </h3>
                 <button onclick="toggleAddTaskModal(false)" class="text-slate-400 hover:text-slate-600">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
@@ -225,17 +339,39 @@
 
             <div class="space-y-3 text-sm">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">タスク名 *</label>
-                    <input type="text" id="new-task-title" placeholder="例: スライド資料の作成" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">予定の種類 *</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex items-center justify-center gap-1.5 p-2 rounded-xl border border-slate-200 cursor-pointer text-xs font-semibold has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-600 has-[:checked]:text-indigo-700">
+                            <input type="radio" name="event-type" value="task" checked class="hidden">
+                            <span>学習タスク</span>
+                        </label>
+                        <label class="flex items-center justify-center gap-1.5 p-2 rounded-xl border border-slate-200 cursor-pointer text-xs font-semibold has-[:checked]:bg-fuchsia-50 has-[:checked]:border-fuchsia-500 has-[:checked]:text-fuchsia-700">
+                            <input type="radio" name="event-type" value="mock" class="hidden">
+                            <span>🎯 模試</span>
+                        </label>
+                        <label class="flex items-center justify-center gap-1.5 p-2 rounded-xl border border-slate-200 cursor-pointer text-xs font-semibold has-[:checked]:bg-rose-50 has-[:checked]:border-rose-500 has-[:checked]:text-rose-700">
+                            <input type="radio" name="event-type" value="test" class="hidden">
+                            <span>📝 テスト</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">日付 *</label>
+                    <input type="date" id="new-task-date-input" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">タイトル *</label>
+                    <input type="text" id="new-task-title" placeholder="例: 全統共通テスト模試 / 物理 例題12" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">詳細・メモ</label>
-                    <textarea id="new-task-desc" rows="2" placeholder="詳細を入力..." class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                    <textarea id="new-task-desc" rows="2" placeholder="会場や持ち物、範囲などのメモ..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">優先度</label>
-                        <select id="new-task-priority" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <select id="new-task-priority" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                             <option value="高">高 (High)</option>
                             <option value="中" selected>中 (Medium)</option>
                             <option value="低">低 (Low)</option>
@@ -243,112 +379,120 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">予定時間</label>
-                        <input type="time" id="new-task-time" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <input type="time" id="new-task-time" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                 </div>
             </div>
 
             <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button onclick="toggleAddTaskModal(false)" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 text-sm">キャンセル</button>
-                <button onclick="addNewTask()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition">追加</button>
+                <button onclick="addNewTask()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition">追加する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal (Replacement for window.confirm) -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-100 space-y-4 text-center">
+            <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900">確認</h3>
+            <p id="confirm-modal-msg" class="text-xs text-slate-600">本当にリセットしますか？</p>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2 border border-slate-300 rounded-xl text-slate-700 text-xs font-semibold hover:bg-slate-50">キャンセル</button>
+                <button id="confirm-modal-action-btn" class="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl">実行する</button>
             </div>
         </div>
     </div>
 
     <script>
-        // デフォルトスケジュールテキスト
-        const DEFAULT_SCHEDULE_TEXT = `9/17
-axis p.4〜8
-
-9/18
-axis p.9〜13
-
-9/19
-axis p.14〜20, 22〜28
-【1周目】物理p.120〜127
-
-9/20
-axis p.29〜32
-化学p.44〜55指定問題
-【1周目】物理p.141〜155
-
-9/21
-錬成古文11, 14, 15, 16
-化学p.56〜61指定問題, p.62〜75
-【1周目】物理p.156〜160
-
-9/22
-錬成漢文10,11,14,16
-com全範囲
-論表全範囲
-化学p.76〜81
-
-9/23
-錬成現代文11〜20 / 「×」整理
-古典「×」がついた問題の整理
-axis「×」がついた問題の整理
-com「×」がついた問題の整理
-論表「×」がついた問題の整理
-化学「×」がついた問題の整理
-物理「×」がついた問題の整理
-
-9/24
-axis 1周目で間違えた問題から厳選
-
-9/25
-物理1周目で間違えた問題から厳選
-
-9/26
-現国解き直し（「×」クリア）
-古典解き直し（「×」クリア）
-com解き直し（「×」クリア）
-論表解き直し（「×」クリア）
-化学解き直し（「×」クリア）
-
-9/27
-現国最終チェック
-古典最終チェック
-axis 最終チェック
-com最終チェック
-論表最終チェック
-化学最終チェック
-物理最終チェック`;
+        const realToday = new Date();
+        const todayMonth = realToday.getMonth() + 1;
+        const todayDate = realToday.getDate();
+        const todayYear = realToday.getFullYear();
+        
+        const TODAY_DATE_STR = `${todayMonth}/${todayDate}`;
 
         let tasks = [];
+        let selectedDateStr = TODAY_DATE_STR;
+        let currentCalYear = todayYear;
+        let currentCalMonth = todayMonth;
 
-        // 日付文字列から科目・分類を推測する補助関数
+        // 初期デフォルトスケジュールテキストの生成関数
+        function generateDefaultScheduleText() {
+            return `${todayMonth}/${todayDate}
+英語 axis 共通テスト演習 第1回
+物理 力学 重問12-15 1周目
+化学 有機化学 構造決定 厳選問題
+国語 現代文 センター過去問 2020年
+
+${todayMonth}/${todayDate + 1}
+英語 com 論表 単語チェック1-100
+物理 電磁気 指定問題1-4
+化学 無機化学 最終チェック
+
+${todayMonth}/${todayDate + 2}
+🎯 全統共通テスト模試
+
+${todayMonth}/${todayDate + 7}
+📝 中間テスト (英語・物理)`;
+        }
+
+        // 科目・イベント種別の自動判別
         function detectCategory(title) {
-            if (title.includes('axis')) return '英語(axis)';
-            if (title.includes('物理')) return '物理';
-            if (title.includes('化学')) return '化学';
-            if (title.includes('古文') || title.includes('漢文') || title.includes('現代文') || title.includes('現国') || title.includes('古典')) return '国語';
-            if (title.includes('com') || title.includes('論表')) return '英語';
+            const t = title.toLowerCase();
+            if (t.includes('模試') || t.includes('マーク模試') || t.includes('記述模試')) return '模試';
+            if (t.includes('テスト') || t.includes('中間') || t.includes('期末') || t.includes('試験')) return 'テスト';
+            if (t.includes('axis') || t.includes('com') || t.includes('論表') || t.includes('英語')) return '英語';
+            if (t.includes('物理')) return '物理';
+            if (t.includes('化学')) return '化学';
+            if (t.includes('古文') || t.includes('漢文') || t.includes('現代文') || t.includes('現国') || t.includes('古典') || t.includes('国語')) return '国語';
             return '一般';
         }
 
-        // テキストを解析してタスクの配列を作成
+        function createTaskObject(dateStr, title, index, eventType = 'task') {
+            let priority = '中';
+            let detectedType = eventType;
+
+            if (title.includes('模試')) detectedType = 'mock';
+            else if (title.includes('テスト') || title.includes('試験') || title.includes('中間') || title.includes('期末')) detectedType = 'test';
+
+            if (detectedType !== 'task' || title.includes('1周目') || title.includes('指定問題') || title.includes('厳選') || title.includes('最終チェック') || title.includes('×')) {
+                priority = '高';
+            }
+
+            return {
+                id: `task-${dateStr.replace('/', '-')}-${index}-${Date.now()}`,
+                date: dateStr,
+                title: title,
+                desc: `予定日: ${dateStr}`,
+                priority: priority,
+                status: 'pending',
+                time: '',
+                category: detectCategory(title),
+                type: detectedType
+            };
+        }
+
         function parseScheduleText(rawText) {
             const parsed = [];
-            // 日付パターン(例: 9/17, 9/18 など)で分割
             const lines = rawText.split(/\r?\n/);
-            let currentDate = '9/17';
+            let currentDate = TODAY_DATE_STR;
 
             lines.forEach((line, idx) => {
                 const trimmed = line.trim();
                 if (!trimmed) return;
 
-                // 日付の行の判定 (例: 9/17, 9/20)
-                const dateMatch = trimmed.match(/^(9\/\d{1,2})/);
+                const dateMatch = trimmed.match(/^(\d{1,2}\/\d{1,2})/);
                 if (dateMatch && trimmed.length <= 6) {
                     currentDate = dateMatch[1];
-                    // 日付のみの行で後ろにテキストがある場合の処理
                     const rest = trimmed.replace(dateMatch[1], '').trim();
                     if (rest) {
                         parsed.push(createTaskObject(currentDate, rest, idx));
                     }
-                } else if (trimmed.match(/^9\/\d{1,2}/)) {
-                    // 日付とタスクが同じ行にある場合 (例: 9/17axis p.4〜8)
-                    const m = trimmed.match(/^(9\/\d{1,2})(.*)/);
+                } else if (trimmed.match(/^\d{1,2}\/\d{1,2}/)) {
+                    const m = trimmed.match(/^(\d{1,2}\/\d{1,2})(.*)/);
                     currentDate = m[1];
                     if (m[2].trim()) {
                         parsed.push(createTaskObject(currentDate, m[2].trim(), idx));
@@ -361,117 +505,272 @@ com最終チェック
             return parsed;
         }
 
-        function createTaskObject(dateStr, title, index) {
-            // 優先度の自動分類（「×」クリア、間違えた問題、最終チェック、指定問題は「高」）
-            let priority = '中';
-            if (title.includes('1周目') || title.includes('指定問題') || title.includes('厳選') || title.includes('最終チェック') || title.includes('×')) {
-                priority = '高';
-            }
-
-            return {
-                id: `task-${dateStr.replace('/', '-')}-${index}-${Date.now()}`,
-                date: dateStr,
-                isToday: dateStr === '9/17', // 今日は9/17として取り扱い
-                title: title,
-                desc: `予定日: ${dateStr}`,
-                priority: priority,
-                status: 'pending',
-                time: '',
-                category: detectCategory(title)
-            };
-        }
-
-        function isTodayDate(rawVal, formattedVal) {
-            const strToTest = String(formattedVal || rawVal || '').trim();
-            if (!strToTest) return true;
-            return strToTest === '9/17' || strToTest.includes('9/17') || strToTest.includes('9月17日');
-        }
-
-        function getActiveTasks() {
-            const filterDate = document.getElementById('filter-date') ? document.getElementById('filter-date').value : 'today';
-            
-            if (filterDate === 'today') {
-                return tasks.filter(t => t.date === '9/17' || t.isToday || t.category === '手動追加');
-            } else if (filterDate === 'all') {
-                return tasks;
-            } else {
-                return tasks.filter(t => t.date === filterDate);
-            }
-        }
-
-        function toggleImportModal(show) {
-            const modal = document.getElementById('import-modal');
-            const textarea = document.getElementById('schedule-raw-input');
-            if (show) {
-                textarea.value = localStorage.getItem('study_schedule_raw_text') || DEFAULT_SCHEDULE_TEXT;
-            }
-            modal.classList.toggle('hidden', !show);
-        }
-
-        function applyCustomTextSchedule() {
-            const textarea = document.getElementById('schedule-raw-input');
-            const text = textarea.value.trim();
-            if (!text) return;
-
-            localStorage.setItem('study_schedule_raw_text', text);
-            tasks = parseScheduleText(text);
-            saveTasksToLocalStorage();
-            toggleImportModal(false);
-            renderAll();
-            showSyncStatus('新しいスケジュールを正常に読み込みました！', 'success');
-        }
-
-        function resetToDefaultSchedule() {
-            if (confirm('初期のスケジュールテキストに戻しますか？')) {
-                localStorage.removeItem('study_schedule_raw_text');
-                tasks = parseScheduleText(DEFAULT_SCHEDULE_TEXT);
-                saveTasksToLocalStorage();
-                renderAll();
-                toggleImportModal(false);
-                showSyncStatus('初期のスケジュールにリセットしました！', 'info');
-            }
-        }
-
         function loadTasksFromLocalStorage() {
-            const storedTasks = localStorage.getItem('study_tasks_parsed_v2');
-            if (storedTasks) {
+            const stored = localStorage.getItem('study_tasks_v3');
+            if (stored) {
                 try {
-                    tasks = JSON.parse(storedTasks);
+                    tasks = JSON.parse(stored);
                 } catch(e) {
-                    tasks = parseScheduleText(DEFAULT_SCHEDULE_TEXT);
+                    tasks = parseScheduleText(generateDefaultScheduleText());
                 }
             } else {
-                const rawText = localStorage.getItem('study_schedule_raw_text') || DEFAULT_SCHEDULE_TEXT;
+                const rawText = localStorage.getItem('study_schedule_raw_text') || generateDefaultScheduleText();
                 tasks = parseScheduleText(rawText);
                 saveTasksToLocalStorage();
             }
         }
 
         function saveTasksToLocalStorage() {
-            localStorage.setItem('study_tasks_parsed_v2', JSON.stringify(tasks));
+            localStorage.setItem('study_tasks_v3', JSON.stringify(tasks));
+        }
+
+        function getTasksForSelectedDate() {
+            return tasks.filter(t => t.date === selectedDateStr);
+        }
+
+        function renderCalendar() {
+            const calGrid = document.getElementById('calendar-grid');
+            const monthYearText = document.getElementById('calendar-month-year');
+            if (!calGrid || !monthYearText) return;
+
+            monthYearText.textContent = `${currentCalYear}年 ${currentCalMonth}月`;
+
+            const firstDay = new Date(currentCalYear, currentCalMonth - 1, 1).getDay();
+            const daysInMonth = new Date(currentCalYear, currentCalMonth, 0).getDate();
+
+            let html = '';
+
+            for (let i = 0; i < firstDay; i++) {
+                html += `<div class="bg-slate-50/50 rounded-xl p-1 border border-slate-100 opacity-40"></div>`;
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${currentCalMonth}/${d}`;
+                const isToday = (currentCalYear === todayYear && currentCalMonth === todayMonth && d === todayDate);
+                const isSelected = (selectedDateStr === dateStr);
+
+                const dayTasks = tasks.filter(t => t.date === dateStr);
+                const pendingCount = dayTasks.filter(t => t.status !== 'completed').length;
+
+                // テスト日・模試の日の判定
+                const hasMock = dayTasks.some(t => t.type === 'mock' || t.category === '模試' || t.title.includes('模試'));
+                const hasTest = dayTasks.some(t => t.type === 'test' || t.category === 'テスト' || t.title.includes('テスト') || t.title.includes('試験'));
+
+                // ハイライト表示用クラス決定
+                let highlightClass = '';
+                if (hasMock) {
+                    highlightClass = 'day-cell-exam shadow-sm';
+                } else if (hasTest) {
+                    highlightClass = 'day-cell-test shadow-sm';
+                }
+
+                let borderStyle = isSelected ? 'ring-2 ring-indigo-600 bg-indigo-50/40 border-indigo-300' : 'border-slate-200/80 bg-white hover:border-indigo-300';
+                if (isToday) borderStyle += ' bg-amber-50/40';
+
+                // カテゴリー別ドットカラー
+                const hasEnglish = dayTasks.some(t => t.category === '英語');
+                const hasPhysics = dayTasks.some(t => t.category === '物理');
+                const hasChem = dayTasks.some(t => t.category === '化学');
+                const hasJapanese = dayTasks.some(t => t.category === '国語');
+
+                html += `
+                    <div onclick="selectDate('${dateStr}')" class="calendar-day-cell cursor-pointer rounded-xl p-1.5 border transition flex flex-col justify-between ${highlightClass || borderStyle}">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-xs ${isToday ? 'w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center' : 'text-slate-700'}">${d}</span>
+                            ${hasMock ? `<span class="px-1 py-0.2 bg-fuchsia-600 text-white font-black rounded text-[9px]">模試</span>` : 
+                              hasTest ? `<span class="px-1 py-0.2 bg-rose-600 text-white font-black rounded text-[9px]">テスト</span>` :
+                              pendingCount > 0 ? `<span class="px-1.5 py-0.2 bg-amber-100 text-amber-800 font-bold rounded-full text-[10px]">${pendingCount}</span>` : ''}
+                        </div>
+
+                        <!-- Dots for subjects -->
+                        <div class="flex flex-wrap gap-1 my-1">
+                            ${hasEnglish ? `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500" title="英語"></span>` : ''}
+                            ${hasPhysics ? `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500" title="物理"></span>` : ''}
+                            ${hasChem ? `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500" title="化学"></span>` : ''}
+                            ${hasJapanese ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500" title="国語"></span>` : ''}
+                        </div>
+
+                        <div class="text-[10px] text-slate-500 font-mono truncate font-medium">
+                            ${dayTasks.length > 0 ? (pendingCount === 0 ? '✓完了' : `${dayTasks.length}件`) : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            calGrid.innerHTML = html;
+        }
+
+        function updateSidebarStats() {
+            const todayTasks = tasks.filter(t => t.date === TODAY_DATE_STR);
+            const todayCountBadge = document.getElementById('badge-today-count');
+            if (todayCountBadge) todayCountBadge.textContent = todayTasks.filter(t => t.status !== 'completed').length;
+
+            const highPriorityTasks = tasks.filter(t => t.priority === '高' && t.status !== 'completed');
+            const highBadge = document.getElementById('badge-high-priority');
+            if (highBadge) highBadge.textContent = highPriorityTasks.length;
+
+            // テスト・模試件数と教科カウント
+            const mockCount = tasks.filter(t => t.type === 'mock' || t.category === '模試' || t.title.includes('模試')).length;
+            const testCount = tasks.filter(t => t.type === 'test' || t.category === 'テスト' || t.title.includes('テスト') || t.title.includes('試験')).length;
+            
+            document.getElementById('count-type-mock').textContent = mockCount;
+            document.getElementById('count-type-test').textContent = testCount;
+
+            document.getElementById('count-cat-english').textContent = tasks.filter(t => t.category === '英語').length;
+            document.getElementById('count-cat-physics').textContent = tasks.filter(t => t.category === '物理').length;
+            document.getElementById('count-cat-chemistry').textContent = tasks.filter(t => t.category === '化学').length;
+            document.getElementById('count-cat-japanese').textContent = tasks.filter(t => t.category === '国語').length;
+
+            // 直近のテスト・模試のカウントダウン計算
+            updateExamCountdown();
+        }
+
+        function updateExamCountdown() {
+            const countdownTitle = document.getElementById('countdown-title');
+            const countdownDays = document.getElementById('countdown-days');
+            const countdownDate = document.getElementById('countdown-date');
+
+            if (!countdownTitle) return;
+
+            // 試験・模試タスクを取得
+            const exams = tasks.filter(t => (t.type === 'mock' || t.type === 'test' || t.category === '模試' || t.category === 'テスト' || t.title.includes('模試') || t.title.includes('テスト') || t.title.includes('試験')));
+
+            if (exams.length === 0) {
+                countdownTitle.textContent = '試験の予定はありません';
+                countdownDays.textContent = '予定なし';
+                countdownDate.textContent = '「タスク追加」からテスト/模試を登録';
+                return;
+            }
+
+            // 日付文字列 (M/D) を Date に変換してソート
+            const sortedExams = exams.map(e => {
+                const parts = e.date.split('/');
+                const eMonth = parseInt(parts[0], 10);
+                const eDay = parseInt(parts[1], 10);
+                let eYear = todayYear;
+                if (eMonth < todayMonth) eYear++; // 年越しの考慮
+                const examDateObj = new Date(eYear, eMonth - 1, eDay);
+                return { ...e, dateObj: examDateObj };
+            }).sort((a, b) => a.dateObj - b.dateObj);
+
+            // 今日以降で一番近い試験を探す（なければ最初の過去試験）
+            const todayStart = new Date(todayYear, todayMonth - 1, todayDate);
+            const nextExam = sortedExams.find(e => e.dateObj >= todayStart) || sortedExams[0];
+
+            const diffTime = nextExam.dateObj - todayStart;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            countdownTitle.textContent = nextExam.title;
+            countdownDate.textContent = `実施日: ${nextExam.date}`;
+
+            if (diffDays === 0) {
+                countdownDays.textContent = '本日！';
+                countdownDays.className = 'text-xs font-black px-2.5 py-0.5 bg-amber-400 text-slate-900 rounded-full animate-pulse';
+            } else if (diffDays > 0) {
+                countdownDays.textContent = `あと ${diffDays} 日`;
+                countdownDays.className = 'text-xs font-black px-2.5 py-0.5 bg-white/20 rounded-full';
+            } else {
+                countdownDays.textContent = '終了';
+                countdownDays.className = 'text-xs font-black px-2 py-0.5 bg-slate-700 text-white rounded-full';
+            }
+        }
+
+        function addNewTask() {
+            const dateInput = document.getElementById('new-task-date-input');
+            const titleInput = document.getElementById('new-task-title');
+            const descInput = document.getElementById('new-task-desc');
+            const priorityInput = document.getElementById('new-task-priority');
+            const timeInput = document.getElementById('new-task-time');
+            
+            // 選択されたラジオボタンを取得
+            const selectedType = document.querySelector('input[name="event-type"]:checked')?.value || 'task';
+
+            const title = titleInput.value.trim();
+            if (!title) {
+                showSyncStatus('タイトルを入力してください', 'error');
+                return;
+            }
+
+            let formattedDate = selectedDateStr;
+            if (dateInput.value) {
+                const parts = dateInput.value.split('-');
+                if (parts.length === 3) {
+                    formattedDate = `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
+                }
+            }
+
+            let cat = detectCategory(title);
+            if (selectedType === 'mock') cat = '模試';
+            if (selectedType === 'test') cat = 'テスト';
+
+            const newTask = {
+                id: `task-manual-${Date.now()}`,
+                date: formattedDate,
+                title: title,
+                desc: descInput.value.trim(),
+                priority: priorityInput.value,
+                status: 'pending',
+                time: timeInput.value || '',
+                category: cat,
+                type: selectedType
+            };
+
+            tasks.unshift(newTask);
+            saveTasksToLocalStorage();
+            selectedDateStr = formattedDate;
+            toggleAddTaskModal(false);
+            renderAll();
+            
+            const msg = selectedType === 'mock' ? '模試の日程を登録しました！' :
+                        selectedType === 'test' ? 'テストの日程を登録しました！' : '新しいタスクを追加しました！';
+            showSyncStatus(msg, 'success');
+        }
+
+        function changeMonth(delta) {
+            currentCalMonth += delta;
+            if (currentCalMonth > 12) {
+                currentCalMonth = 1;
+                currentCalYear++;
+            } else if (currentCalMonth < 1) {
+                currentCalMonth = 12;
+                currentCalYear--;
+            }
+            renderCalendar();
+        }
+
+        function selectDate(dateStr) {
+            selectedDateStr = dateStr;
+            renderAll();
+        }
+
+        function jumpToToday() {
+            selectedDateStr = TODAY_DATE_STR;
+            currentCalYear = todayYear;
+            currentCalMonth = todayMonth;
+            renderAll();
+            showSyncStatus('今日の日付に切り替えました！', 'info');
         }
 
         function renderAll() {
+            renderCalendar();
             renderFocusTask();
             renderTasks();
             updateProgressBar();
-            if (window.lucide) {
-                lucide.createIcons();
-            }
+            updateSidebarStats();
+            if (window.lucide) lucide.createIcons();
         }
 
         function renderFocusTask() {
             const focusTitle = document.getElementById('focus-task-title');
             const focusDesc = document.getElementById('focus-task-desc');
-            const focusTime = document.getElementById('focus-task-time');
             const focusCategory = document.getElementById('focus-task-category');
             const focusPriorityBadge = document.getElementById('focus-priority-badge');
             const focusBtn = document.getElementById('focus-complete-btn');
 
             if (!focusTitle) return;
 
-            const activeTasks = getActiveTasks();
-            const pendingTasks = activeTasks.filter(t => t.status !== 'completed');
+            const selectedTasks = getTasksForSelectedDate();
+            const pendingTasks = selectedTasks.filter(t => t.status !== 'completed');
 
             const priorityWeight = { '高': 3, '中': 2, '低': 1 };
             pendingTasks.sort((a, b) => (priorityWeight[b.priority] || 1) - (priorityWeight[a.priority] || 1));
@@ -481,35 +780,31 @@ com最終チェック
             if (currentFocus) {
                 focusTitle.textContent = currentFocus.title;
                 focusDesc.textContent = currentFocus.desc || `予定日: ${currentFocus.date}`;
-                focusTime.innerHTML = `<i data-lucide="clock" class="w-3.5 h-3.5"></i> ${currentFocus.time || '時間指定なし'}`;
-                focusCategory.innerHTML = `<i data-lucide="tag" class="w-3.5 h-3.5"></i> ${currentFocus.category || '一般'}`;
+                focusCategory.innerHTML = `<i data-lucide="tag" class="w-3 h-3"></i> ${currentFocus.category || '一般'}`;
                 focusPriorityBadge.textContent = `優先度: ${currentFocus.priority}`;
                 
                 if (currentFocus.priority === '高') {
-                    focusPriorityBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-slate-900';
-                } else if (currentFocus.priority === '中') {
-                    focusPriorityBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-300 text-slate-900';
+                    focusPriorityBadge.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-400 text-slate-900';
                 } else {
-                    focusPriorityBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-200 text-slate-700';
+                    focusPriorityBadge.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-300 text-slate-900';
                 }
 
                 if (focusBtn) {
                     focusBtn.style.display = 'inline-flex';
-                    focusBtn.onclick = () => completeTask(currentFocus.id, true);
+                    focusBtn.onclick = () => completeTask(currentFocus.id);
                 }
             } else {
-                const total = activeTasks.length;
+                const total = selectedTasks.length;
                 if (total > 0) {
-                    focusTitle.textContent = '🎉 本日のすべてのタスクが完了しました！';
-                    focusDesc.textContent = '素晴らしい集中力です！ゆっくり休むか、新しいタスクを計画しましょう。';
+                    focusTitle.textContent = '🎉 選択日のすべてのタスクが完了！';
+                    focusDesc.textContent = '素晴らしい集中力です！次の日の準備をするか、達成感を味わいましょう。';
                 } else {
-                    focusTitle.textContent = '該当するタスクはありません';
-                    focusDesc.textContent = '右上の「タスク追加」から新しい目標を設定しましょう。';
+                    focusTitle.textContent = '予定されているタスクはありません';
+                    focusDesc.textContent = '「タスク追加」からこの日の学習目標を登録しましょう。';
                 }
-                focusTime.innerHTML = `<i data-lucide="clock" class="w-3.5 h-3.5"></i> --:--`;
-                focusCategory.innerHTML = `<i data-lucide="tag" class="w-3.5 h-3.5"></i> 完了`;
+                focusCategory.innerHTML = `<i data-lucide="tag" class="w-3 h-3"></i> 完了`;
                 focusPriorityBadge.textContent = '達成！';
-                focusPriorityBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-400 text-slate-900';
+                focusPriorityBadge.className = 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-400 text-slate-900';
                 if (focusBtn) focusBtn.style.display = 'none';
             }
         }
@@ -517,10 +812,16 @@ com最終チェック
         function renderTasks() {
             const taskListEl = document.getElementById('task-list');
             const filterStatus = document.getElementById('filter-status') ? document.getElementById('filter-status').value : 'all';
-            
+            const selectedTitle = document.getElementById('selected-date-title');
+
+            if (selectedTitle) {
+                const isTodayStr = (selectedDateStr === TODAY_DATE_STR) ? ' (今日)' : '';
+                selectedTitle.innerHTML = `<i data-lucide="list-todo" class="w-4 h-4 text-indigo-600"></i> ${selectedDateStr}${isTodayStr} のタスク`;
+            }
+
             if (!taskListEl) return;
 
-            let displayTasks = getActiveTasks();
+            let displayTasks = getTasksForSelectedDate();
 
             if (filterStatus === 'pending') {
                 displayTasks = displayTasks.filter(t => t.status !== 'completed');
@@ -530,10 +831,9 @@ com最終チェック
 
             if (displayTasks.length === 0) {
                 taskListEl.innerHTML = `
-                    <div class="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300 p-6">
-                        <i data-lucide="check-circle-2" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
-                        <p class="text-slate-500 text-sm font-medium">表示できるタスクはありません</p>
-                        <p class="text-xs text-slate-400 mt-1">フィルターを変更するか、新しいタスクを追加してください。</p>
+                    <div class="text-center py-8 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 p-4">
+                        <i data-lucide="check-circle-2" class="w-8 h-8 text-slate-300 mx-auto mb-2"></i>
+                        <p class="text-slate-500 text-xs font-medium">表示できるタスクはありません</p>
                     </div>
                 `;
                 if (window.lucide) lucide.createIcons();
@@ -542,38 +842,29 @@ com最終チェック
 
             taskListEl.innerHTML = displayTasks.map(task => {
                 const isDone = task.status === 'completed';
-                const pColor = task.priority === '高' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                               task.priority === '中' ? 'bg-blue-100 text-blue-800 border-blue-300' :
-                               'bg-slate-100 text-slate-700 border-slate-300';
+                const pColor = task.priority === '高' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                               task.priority === '中' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                               'bg-slate-100 text-slate-700 border-slate-200';
 
                 return `
-                    <div class="task-card bg-white rounded-xl p-4 border ${isDone ? 'border-slate-200 bg-slate-50/60 opacity-75' : 'border-slate-200 shadow-sm'} flex items-start justify-between gap-3 transition">
-                        <div class="flex items-start gap-3.5 flex-1 min-w-0">
-                            <button onclick="toggleTaskStatus('${task.id}')" class="mt-0.5 shrink-0 rounded-lg p-1 transition ${isDone ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-100'}">
-                                <i data-lucide="${isDone ? 'check-square' : 'square'}" class="w-5 h-5"></i>
+                    <div class="task-card bg-white rounded-xl p-3 border ${isDone ? 'border-slate-200 bg-slate-50/60 opacity-70' : 'border-slate-200/80 shadow-sm'} flex items-start justify-between gap-2">
+                        <div class="flex items-start gap-2.5 flex-1 min-w-0">
+                            <button onclick="toggleTaskStatus('${task.id}')" class="mt-0.5 shrink-0 rounded-md p-0.5 transition ${isDone ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-100'}">
+                                <i data-lucide="${isDone ? 'check-square' : 'square'}" class="w-4 h-4"></i>
                             </button>
                             <div class="min-w-0 flex-1">
-                                <div class="flex flex-wrap items-center gap-2 mb-1">
-                                    <span class="text-xs font-semibold px-2 py-0.5 rounded-md border ${pColor}">${task.priority}</span>
-                                    <span class="text-xs font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">${task.category || '一般'}</span>
-                                    <span class="text-xs text-slate-400 font-mono">📅 ${task.date}</span>
-                                    ${task.time ? `<span class="text-xs text-slate-400 font-mono">⏰ ${task.time}</span>` : ''}
+                                <div class="flex flex-wrap items-center gap-1.5 mb-1">
+                                    <span class="text-[10px] font-semibold px-1.5 py-0.2 rounded border ${pColor}">${task.priority}</span>
+                                    <span class="text-[10px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">${task.category || '一般'}</span>
+                                    ${task.time ? `<span class="text-[10px] text-slate-400 font-mono">⏰ ${task.time}</span>` : ''}
                                 </div>
-                                <h4 class="text-sm font-semibold text-slate-800 ${isDone ? 'line-through text-slate-400' : ''} leading-snug break-words">${escapeHtml(task.title)}</h4>
-                                ${task.desc ? `<p class="text-xs text-slate-500 mt-1 line-clamp-2">${escapeHtml(task.desc)}</p>` : ''}
+                                <h4 class="text-xs font-semibold text-slate-800 ${isDone ? 'line-through text-slate-400' : ''} leading-snug break-words">${escapeHtml(task.title)}</h4>
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-1 shrink-0">
-                            <select onchange="updateTaskPriority('${task.id}', this.value)" class="text-xs border border-slate-200 rounded px-1.5 py-1 text-slate-600 bg-slate-50 hover:bg-white focus:outline-none">
-                                <option value="高" ${task.priority === '高' ? 'selected' : ''}>高</option>
-                                <option value="中" ${task.priority === '中' ? 'selected' : ''}>中</option>
-                                <option value="低" ${task.priority === '低' ? 'selected' : ''}>低</option>
-                            </select>
-                            <button onclick="deleteTask('${task.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="削除">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </div>
+                        <button onclick="deleteTask('${task.id}')" class="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition" title="削除">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
                     </div>
                 `;
             }).join('');
@@ -582,7 +873,7 @@ com最終チェック
         }
 
         function updateProgressBar() {
-            const activeTasks = getActiveTasks();
+            const activeTasks = getTasksForSelectedDate();
             const total = activeTasks.length;
             const completed = activeTasks.filter(t => t.status === 'completed').length;
             const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -591,25 +882,29 @@ com最終チェック
             const countEl = document.getElementById('progress-count');
             const fillEl = document.getElementById('progress-fill');
             const msgEl = document.getElementById('encouragement-msg');
+            const labelEl = document.getElementById('progress-date-label');
 
+            if (labelEl) labelEl.textContent = `${selectedDateStr} の達成度`;
             if (percentEl) percentEl.textContent = `${percent}%`;
-            if (countEl) countEl.textContent = `${completed} / ${total} タスク完了`;
+            if (countEl) countEl.textContent = `${completed} / ${total} 完了`;
             if (fillEl) fillEl.style.width = `${percent}%`;
 
             if (msgEl) {
-                if (total === 0) {
-                    msgEl.textContent = 'タスクを登録して今日の計画を立てましょう！';
-                } else if (percent === 100) {
-                    msgEl.textContent = '素晴らしい！すべてのタスクを完了しました！🎉';
-                } else if (percent >= 75) {
-                    msgEl.textContent = 'あと少し！ゴールはすぐそこです！🔥';
-                } else if (percent >= 50) {
-                    msgEl.textContent = '半分達成！この調子で頑張りましょう！✨';
-                } else if (percent > 0) {
-                    msgEl.textContent = '順調なスタートです！着実に進めましょう💪';
-                } else {
-                    msgEl.textContent = 'タスクを開始して今日を最高の1日にしましょう！';
-                }
+                if (total === 0) msgEl.textContent = 'タスクを追加しましょう！';
+                else if (percent === 100) msgEl.textContent = 'コンプリート！🎉';
+                else if (percent >= 50) msgEl.textContent = '半分完了！✨';
+                else msgEl.textContent = '着実に進めましょう💪';
+            }
+        }
+
+        function filterByPriority(priority) {
+            const highTask = tasks.find(t => t.priority === priority && t.status !== 'completed');
+            if (highTask) {
+                selectedDateStr = highTask.date;
+                renderAll();
+                showSyncStatus(`優先度「${priority}」のタスクがある ${highTask.date} に移動しました`, 'info');
+            } else {
+                showSyncStatus(`現在、優先度「${priority}」の未完了タスクはありません`, 'info');
             }
         }
 
@@ -618,19 +913,19 @@ com最終チェック
             if (task) {
                 task.status = task.status === 'completed' ? 'pending' : 'completed';
                 if (task.status === 'completed' && typeof confetti === 'function') {
-                    confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
+                    confetti({ particleCount: 35, spread: 60, origin: { y: 0.7 } });
                 }
                 saveTasksToLocalStorage();
                 renderAll();
             }
         }
 
-        function completeTask(taskId, triggerEffects = true) {
+        function completeTask(taskId) {
             const task = tasks.find(t => t.id === taskId);
             if (task) {
                 task.status = 'completed';
-                if (triggerEffects && typeof confetti === 'function') {
-                    confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
+                if (typeof confetti === 'function') {
+                    confetti({ particleCount: 65, spread: 80, origin: { y: 0.6 } });
                 }
                 saveTasksToLocalStorage();
                 renderAll();
@@ -638,22 +933,13 @@ com最終チェック
         }
 
         function completeCurrentFocusTask() {
-            const activeTasks = getActiveTasks();
-            const pendingTasks = activeTasks.filter(t => t.status !== 'completed');
+            const selectedTasks = getTasksForSelectedDate();
+            const pendingTasks = selectedTasks.filter(t => t.status !== 'completed');
             const priorityWeight = { '高': 3, '中': 2, '低': 1 };
             pendingTasks.sort((a, b) => (priorityWeight[b.priority] || 1) - (priorityWeight[a.priority] || 1));
 
             if (pendingTasks.length > 0) {
-                completeTask(pendingTasks[0].id, true);
-            }
-        }
-
-        function updateTaskPriority(taskId, newPriority) {
-            const task = tasks.find(t => t.id === taskId);
-            if (task) {
-                task.priority = newPriority;
-                saveTasksToLocalStorage();
-                renderAll();
+                completeTask(pendingTasks[0].id);
             }
         }
 
@@ -661,6 +947,41 @@ com最終チェック
             tasks = tasks.filter(t => t.id !== taskId);
             saveTasksToLocalStorage();
             renderAll();
+            showSyncStatus('タスクを削除しました', 'info');
+        }
+
+        function toggleImportModal(show) {
+            const modal = document.getElementById('import-modal');
+            const textarea = document.getElementById('schedule-raw-input');
+            if (show && textarea) {
+                textarea.value = localStorage.getItem('study_schedule_raw_text') || generateDefaultScheduleText();
+            }
+            if (modal) modal.classList.toggle('hidden', !show);
+        }
+
+        function applyCustomTextSchedule() {
+            const textarea = document.getElementById('schedule-raw-input');
+            const text = textarea ? textarea.value.trim() : '';
+            if (!text) return;
+
+            localStorage.setItem('study_schedule_raw_text', text);
+            tasks = parseScheduleText(text);
+            saveTasksToLocalStorage();
+            toggleImportModal(false);
+            renderAll();
+            showSyncStatus('スケジュールテキストを再解析して読み込みました！', 'success');
+        }
+
+        function confirmResetSchedule() {
+            openConfirmModal('すべてのタスクデータが初期状態にリセットされます。実行しますか？', () => {
+                localStorage.removeItem('study_schedule_raw_text');
+                localStorage.removeItem('study_tasks_v3');
+                tasks = parseScheduleText(generateDefaultScheduleText());
+                saveTasksToLocalStorage();
+                toggleImportModal(false);
+                renderAll();
+                showSyncStatus('初期スケジュールにリセットしました', 'info');
+            });
         }
 
         function toggleAddTaskModal(show) {
@@ -668,6 +989,8 @@ com最終チェック
             if (modal) {
                 modal.classList.toggle('hidden', !show);
                 if (show) {
+                    const todayInputStr = `${todayYear}-${String(todayMonth).padStart(2,'0')}-${String(todayDate).padStart(2,'0')}`;
+                    document.getElementById('new-task-date-input').value = todayInputStr;
                     document.getElementById('new-task-title').value = '';
                     document.getElementById('new-task-desc').value = '';
                     document.getElementById('new-task-time').value = '';
@@ -675,43 +998,25 @@ com最終チェック
             }
         }
 
-        function addNewTask() {
-            const titleInput = document.getElementById('new-task-title');
-            const descInput = document.getElementById('new-task-desc');
-            const priorityInput = document.getElementById('new-task-priority');
-            const timeInput = document.getElementById('new-task-time');
-            const filterDate = document.getElementById('filter-date') ? document.getElementById('filter-date').value : '9/17';
+        // Custom Confirm Modal Logic (No alert/confirm)
+        function openConfirmModal(msg, onConfirm) {
+            const modal = document.getElementById('confirm-modal');
+            const msgEl = document.getElementById('confirm-modal-msg');
+            const actionBtn = document.getElementById('confirm-modal-action-btn');
 
-            const title = titleInput.value.trim();
-            if (!title) {
-                showSyncStatus('タスク名を入力してください', 'error');
-                return;
+            if (modal && msgEl && actionBtn) {
+                msgEl.textContent = msg;
+                actionBtn.onclick = () => {
+                    onConfirm();
+                    closeConfirmModal();
+                };
+                modal.classList.remove('hidden');
             }
-
-            const dateVal = (filterDate === 'all' || filterDate === 'today') ? '9/17' : filterDate;
-
-            const newTask = {
-                id: `task-manual-${Date.now()}`,
-                date: dateVal,
-                isToday: dateVal === '9/17',
-                title: title,
-                desc: descInput.value.trim(),
-                priority: priorityInput.value,
-                status: 'pending',
-                time: timeInput.value || '',
-                category: detectCategory(title)
-            };
-
-            tasks.unshift(newTask);
-            saveTasksToLocalStorage();
-            toggleAddTaskModal(false);
-            renderAll();
-            showSyncStatus('新しいタスクを追加しました！', 'success');
         }
 
-        function toggleSettingsModal(show) {
-            const modal = document.getElementById('settings-modal');
-            if (modal) modal.classList.toggle('hidden', !show);
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirm-modal');
+            if (modal) modal.classList.add('hidden');
         }
 
         function showSyncStatus(msg, type = 'info') {
@@ -723,17 +1028,17 @@ com最終チェック
 
             text.textContent = msg;
             if (type === 'success') {
-                content.className = 'px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-between shadow-sm bg-emerald-50 text-emerald-800 border border-emerald-200';
+                content.className = 'px-4 py-3 rounded-2xl text-xs sm:text-sm font-semibold flex items-center justify-between shadow-xl bg-emerald-600 text-white';
             } else if (type === 'error') {
-                content.className = 'px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-between shadow-sm bg-rose-50 text-rose-800 border border-rose-200';
+                content.className = 'px-4 py-3 rounded-2xl text-xs sm:text-sm font-semibold flex items-center justify-between shadow-xl bg-rose-600 text-white';
             } else {
-                content.className = 'px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-between shadow-sm bg-indigo-50 text-indigo-800 border border-indigo-200';
+                content.className = 'px-4 py-3 rounded-2xl text-xs sm:text-sm font-semibold flex items-center justify-between shadow-xl bg-slate-800 text-white';
             }
 
             banner.classList.remove('hidden');
             setTimeout(() => {
                 banner.classList.add('hidden');
-            }, 4000);
+            }, 3500);
         }
 
         function escapeHtml(str) {
@@ -747,7 +1052,10 @@ com最終チェック
         }
 
         window.onload = function() {
-            document.getElementById('current-date-display').textContent = '2026年9月17日 (木)';
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
+            const dateStr = realToday.toLocaleDateString('ja-JP', options);
+            document.getElementById('current-date-display').textContent = `今日: ${dateStr}`;
+            
             loadTasksFromLocalStorage();
             renderAll();
         };
