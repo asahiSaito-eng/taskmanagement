@@ -59,35 +59,35 @@
 </head>
 <body class="text-slate-800 min-h-screen bg-slate-50 flex flex-col">
 
-    <div id="app" class="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-4 lg:px-6 flex flex-col">
+    <div id="app" class="flex-1 max-w-full w-full mx-auto px-1 sm:px-3 py-1 flex flex-col">
         
         <!-- Top Navigation Bar Header -->
-        <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm rounded-b-2xl mb-4 px-4 py-3">
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center space-x-3">
-                    <div class="p-2 bg-indigo-600 text-white rounded-xl shadow-md shadow-indigo-100">
-                        <i data-lucide="book-open" class="w-6 h-6"></i>
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm rounded-xl mb-2 px-3 py-2">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center space-x-2">
+                    <div class="p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm">
+                        <i data-lucide="book-open" class="w-5 h-5"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                        <h1 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
                             受験・学習タスク管理
-                            <span class="text-xs font-normal px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full">X-Style</span>
+                            <span class="text-[10px] font-normal px-1.5 py-0.2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full">X-Style</span>
                         </h1>
-                        <p id="current-date-display" class="text-xs text-slate-500 font-medium">読み込み中...</p>
+                        <p id="current-date-display" class="text-[11px] text-slate-500 font-medium">読み込み中...</p>
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-2">
-                    <button onclick="toggleAddTaskModal(true)" class="flex items-center space-x-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-sm">
-                        <i data-lucide="plus" class="w-4 h-4"></i>
+                <div class="flex items-center space-x-1.5">
+                    <button onclick="toggleAddTaskModal(true)" class="flex items-center space-x-1 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition shadow-sm">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                         <span class="hidden sm:inline">タスク追加</span>
                     </button>
-                    <button onclick="toggleImportModal(true)" class="flex items-center space-x-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-medium transition" title="スケジュール一括編集">
-                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <button onclick="toggleImportModal(true)" class="flex items-center space-x-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition" title="スケジュール一括編集">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
                         <span class="hidden md:inline">一括編集</span>
                     </button>
-                    <button onclick="confirmResetSchedule()" class="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition" title="初期スケジュールに戻す">
-                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                    <button onclick="confirmResetSchedule()" class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="初期スケジュールに戻す">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
                     </button>
                 </div>
             </div>
@@ -101,104 +101,104 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 pb-12">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 flex-1 pb-4">
 
             <!-- LEFT SIDEBAR: Navigation & Quick Stats (3 Cols on Desktop) -->
-            <aside class="lg:col-span-3 space-y-4 order-2 lg:order-1">
+            <aside class="lg:col-span-3 space-y-2 order-2 lg:order-1">
                 <!-- Navigation Box -->
-                <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">メニュー</h3>
-                    <button onclick="jumpToToday()" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 font-bold text-sm transition">
-                        <span class="flex items-center gap-2.5">
-                            <i data-lucide="calendar-check-2" class="w-4 h-4 text-indigo-600"></i>
+                <div class="bg-white rounded-xl p-2.5 border border-slate-200/80 shadow-sm space-y-1">
+                    <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-1">メニュー</h3>
+                    <button onclick="jumpToToday()" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-xs transition">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="calendar-check-2" class="w-3.5 h-3.5 text-indigo-600"></i>
                             今日へ移動
                         </span>
-                        <span id="badge-today-count" class="px-2 py-0.5 text-xs bg-indigo-600 text-white rounded-full font-semibold">0</span>
+                        <span id="badge-today-count" class="px-1.5 py-0.2 text-[10px] bg-indigo-600 text-white rounded-full font-semibold">0</span>
                     </button>
-                    <button onclick="filterByPriority('高')" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-sm transition">
-                        <span class="flex items-center gap-2.5">
-                            <i data-lucide="alert-circle" class="w-4 h-4 text-amber-500"></i>
+                    <button onclick="filterByPriority('高')" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-slate-100 text-slate-700 font-medium text-xs transition">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-500"></i>
                             高優先度タスク
                         </span>
-                        <span id="badge-high-priority" class="px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded-full font-semibold">0</span>
+                        <span id="badge-high-priority" class="px-1.5 py-0.2 text-[10px] bg-amber-100 text-amber-800 rounded-full font-semibold">0</span>
                     </button>
-                    <button onclick="toggleImportModal(true)" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium text-sm transition">
-                        <span class="flex items-center gap-2.5">
-                            <i data-lucide="edit-3" class="w-4 h-4 text-slate-500"></i>
+                    <button onclick="toggleImportModal(true)" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-slate-100 text-slate-700 font-medium text-xs transition">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-500"></i>
                             テキスト編集
                         </span>
                     </button>
                 </div>
 
                 <!-- Next Exam Countdown Widget -->
-                <div id="countdown-card" class="bg-gradient-to-br from-rose-500 to-fuchsia-600 rounded-2xl p-4 text-white shadow-md relative overflow-hidden">
+                <div id="countdown-card" class="bg-gradient-to-br from-rose-500 to-fuchsia-600 rounded-xl p-3 text-white shadow-sm relative overflow-hidden">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="text-[11px] font-bold tracking-wider uppercase opacity-90 flex items-center gap-1">
-                            <i data-lucide="flag" class="w-3.5 h-3.5"></i> 直近の試験
+                        <span class="text-[10px] font-bold tracking-wider uppercase opacity-90 flex items-center gap-1">
+                            <i data-lucide="flag" class="w-3 h-3"></i> 直近の試験
                         </span>
-                        <span id="countdown-days" class="text-xs font-black px-2 py-0.5 bg-white/20 rounded-full">あと - 日</span>
+                        <span id="countdown-days" class="text-[10px] font-black px-2 py-0.2 bg-white/20 rounded-full">あと - 日</span>
                     </div>
-                    <h4 id="countdown-title" class="text-sm font-bold truncate">予定されている試験はありません</h4>
-                    <p id="countdown-date" class="text-[11px] opacity-80 mt-0.5">「タスク追加」からテスト/模試を登録</p>
+                    <h4 id="countdown-title" class="text-xs font-bold truncate">予定されている試験はありません</h4>
+                    <p id="countdown-date" class="text-[10px] opacity-80 mt-0.5">「タスク追加」からテスト/模試を登録</p>
                 </div>
 
                 <!-- Subject & Event Category Quick Legend -->
-                <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">凡例・カテゴリー</h3>
-                    <div class="space-y-2 text-xs font-medium">
+                <div class="bg-white rounded-xl p-2.5 border border-slate-200/80 shadow-sm">
+                    <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">凡例・カテゴリー</h3>
+                    <div class="space-y-1.5 text-xs font-medium">
                         <div class="flex items-center justify-between text-slate-600">
-                            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-md bg-fuchsia-100 border border-fuchsia-400"></span> 模試の日</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-fuchsia-100 border border-fuchsia-400"></span> 模試の日</span>
                             <span id="count-type-mock" class="text-fuchsia-600 font-bold font-mono">0</span>
                         </div>
                         <div class="flex items-center justify-between text-slate-600">
-                            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-md bg-rose-100 border border-rose-400"></span> 定期テスト日</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-100 border border-rose-400"></span> 定期テスト日</span>
                             <span id="count-type-test" class="text-rose-600 font-bold font-mono">0</span>
                         </div>
-                        <hr class="my-1.5 border-slate-100">
+                        <hr class="my-1 border-slate-100">
                         <div class="flex items-center justify-between text-slate-600">
-                            <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> 英語 / axis</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-indigo-500"></span> 英語 / axis</span>
                             <span id="count-cat-english" class="text-slate-400 font-mono">0</span>
                         </div>
                         <div class="flex items-center justify-between text-slate-600">
-                            <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500"></span> 物理</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-cyan-500"></span> 物理</span>
                             <span id="count-cat-physics" class="text-slate-400 font-mono">0</span>
                         </div>
                         <div class="flex items-center justify-between text-slate-600">
-                            <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 化学</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> 化学</span>
                             <span id="count-cat-chemistry" class="text-slate-400 font-mono">0</span>
                         </div>
                         <div class="flex items-center justify-between text-slate-600">
-                            <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> 国語 (現代文/古文/漢文)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-500"></span> 国語 (現代文/古文/漢文)</span>
                             <span id="count-cat-japanese" class="text-slate-400 font-mono">0</span>
                         </div>
                     </div>
                 </div>
             </aside>
 
-            <!-- CENTER MAIN CONTENT: Interactive Calendar View (5 Cols on Desktop) -->
-            <main class="lg:col-span-5 space-y-4 order-1 lg:order-2">
-                <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm">
+            <!-- CENTER MAIN CONTENT: Interactive Calendar View (6 Cols on Desktop for wider view) -->
+            <main class="lg:col-span-6 space-y-2 order-1 lg:order-2">
+                <div class="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-sm flex flex-col h-full">
                     <!-- Calendar Controls Header -->
-                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="calendar" class="w-5 h-5 text-indigo-600"></i>
-                            <h2 id="calendar-month-year" class="text-base sm:text-lg font-bold text-slate-800">2026年 9月</h2>
+                    <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100">
+                        <div class="flex items-center gap-1.5">
+                            <i data-lucide="calendar" class="w-4 h-4 text-indigo-600"></i>
+                            <h2 id="calendar-month-year" class="text-sm sm:text-base font-bold text-slate-800">2026年 9月</h2>
                         </div>
                         <div class="flex items-center space-x-1">
-                            <button onclick="changeMonth(-1)" class="p-1.5 hover:bg-slate-100 text-slate-600 rounded-lg transition" title="前月">
-                                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                            <button onclick="changeMonth(-1)" class="p-1 hover:bg-slate-100 text-slate-600 rounded transition" title="前月">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
                             </button>
-                            <button onclick="jumpToToday()" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
+                            <button onclick="jumpToToday()" class="px-2 py-0.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition">
                                 今日
                             </button>
-                            <button onclick="changeMonth(1)" class="p-1.5 hover:bg-slate-100 text-slate-600 rounded-lg transition" title="次月">
-                                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                            <button onclick="changeMonth(1)" class="p-1 hover:bg-slate-100 text-slate-600 rounded transition" title="次月">
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
                             </button>
                         </div>
                     </div>
 
                     <!-- Day of Week Headers -->
-                    <div class="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-400 mb-2">
+                    <div class="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-400 mb-1">
                         <div class="text-rose-500">日</div>
                         <div>月</div>
                         <div>火</div>
@@ -209,79 +209,78 @@
                     </div>
 
                     <!-- Dynamic Calendar Grid -->
-                    <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-xs">
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-xs flex-1">
                         <!-- Calendar cells generated via JS -->
                     </div>
                 </div>
             </main>
 
-            <!-- RIGHT SIDEBAR: Today's Tasks & Focus Card (4 Cols on Desktop) -->
-            <aside class="lg:col-span-4 space-y-4 order-3">
+            <!-- RIGHT SIDEBAR: Today's Tasks & Focus Card (3 Cols on Desktop) -->
+            <aside class="lg:col-span-3 space-y-2 order-3">
                 
                 <!-- Focus Next Task Card -->
-                <section id="focus-section" class="focus-gradient text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
-                    <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[11px] font-semibold text-white uppercase">
+                <section id="focus-section" class="focus-gradient text-white rounded-xl p-3 shadow-md relative overflow-hidden">
+                    <div class="absolute -right-8 -bottom-8 w-28 h-28 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-semibold text-white uppercase">
                             <i data-lucide="zap" class="w-3 h-3 text-yellow-300"></i> Next Focus
                         </span>
-                        <span id="focus-priority-badge" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-400 text-slate-900">
+                        <span id="focus-priority-badge" class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-400 text-slate-900">
                             優先度: 高
                         </span>
                     </div>
 
-                    <div id="focus-task-container" class="my-3">
-                        <h3 id="focus-task-title" class="text-lg font-bold tracking-tight text-white mb-1">
+                    <div id="focus-task-container" class="my-2">
+                        <h3 id="focus-task-title" class="text-sm font-bold tracking-tight text-white mb-0.5 truncate">
                             タスクを選択中...
                         </h3>
-                        <p id="focus-task-desc" class="text-indigo-100 text-xs leading-relaxed line-clamp-2">
+                        <p id="focus-task-desc" class="text-indigo-100 text-[11px] leading-relaxed line-clamp-2">
                             本日行うべき一番優先度の高い学習項目です。
                         </p>
                     </div>
 
-                    <div class="flex items-center justify-between pt-2 border-t border-white/20">
-                        <div class="flex items-center space-x-3 text-[11px] text-indigo-100">
+                    <div class="flex items-center justify-between pt-1.5 border-t border-white/20">
+                        <div class="flex items-center space-x-2 text-[10px] text-indigo-100">
                             <span id="focus-task-category" class="flex items-center gap-1"><i data-lucide="tag" class="w-3 h-3"></i> 一般</span>
                         </div>
 
-                        <button id="focus-complete-btn" onclick="completeCurrentFocusTask()" class="px-4 py-2 bg-white hover:bg-slate-100 text-indigo-700 font-bold rounded-xl shadow text-xs transition flex items-center gap-1.5 active:scale-95">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-indigo-600"></i>
-                            <span>完了する</span>
+                        <button id="focus-complete-btn" onclick="completeCurrentFocusTask()" class="px-3 py-1 bg-white hover:bg-slate-100 text-indigo-700 font-bold rounded-lg shadow text-xs transition flex items-center gap-1 active:scale-95">
+                            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-indigo-600"></i>
+                            <span>完了</span>
                         </button>
                     </div>
                 </section>
 
                 <!-- Progress Bar Section -->
-                <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
-                    <div class="flex justify-between items-center mb-1.5">
-                        <h2 class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                            <i data-lucide="trending-up" class="w-4 h-4 text-indigo-600"></i>
+                <section class="bg-white rounded-xl p-3 border border-slate-200/80 shadow-sm">
+                    <div class="flex justify-between items-center mb-1">
+                        <h2 class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                            <i data-lucide="trending-up" class="w-3.5 h-3.5 text-indigo-600"></i>
                             <span id="progress-date-label">今日の進捗</span>
                         </h2>
-                        <span id="progress-percent" class="text-xl font-extrabold text-indigo-600">0%</span>
+                        <span id="progress-percent" class="text-base font-extrabold text-indigo-600">0%</span>
                     </div>
-                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden p-0.5 border border-slate-200/50">
+                    <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-200/50">
                         <div id="progress-fill" class="progress-bar-fill h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full w-0 shadow-sm"></div>
                     </div>
-                    <div class="flex justify-between items-center mt-2 text-[11px] text-slate-500">
-                        <span id="progress-count">0 / 0 タスク完了</span>
-                        <span id="encouragement-msg" class="italic text-indigo-600 font-medium">今日も頑張りましょう！</span>
+                    <div class="flex justify-between items-center mt-1.5 text-[10px] text-slate-500">
+                        <span id="progress-count">0 / 0 完了</span>
+                        <span id="encouragement-msg" class="italic text-indigo-600 font-medium">頑張りましょう！</span>
                     </div>
                 </section>
 
                 <!-- Selected Date Task List Header & Controls -->
-                <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <section class="bg-white rounded-xl p-3 border border-slate-200/80 shadow-sm space-y-2">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
                         <div>
-                            <h3 id="selected-date-title" class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                                <i data-lucide="list-todo" class="w-4 h-4 text-indigo-600"></i>
-                                今日のタスク一覧
+                            <h3 id="selected-date-title" class="text-xs font-bold text-slate-800 flex items-center gap-1">
+                                <i data-lucide="list-todo" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                タスク一覧
                             </h3>
-                            <p id="selected-date-sub" class="text-[11px] text-slate-400">日付を選択して切り替え可能</p>
                         </div>
 
                         <!-- Status Filter -->
-                        <select id="filter-status" onchange="renderTasks()" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <select id="filter-status" onchange="renderTasks()" class="bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
                             <option value="all">すべて</option>
                             <option value="pending" selected>未完了</option>
                             <option value="completed">完了済み</option>
@@ -289,7 +288,7 @@
                     </div>
 
                     <!-- Scrollable Task List -->
-                    <div id="task-list" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
+                    <div id="task-list" class="space-y-1.5 max-h-[350px] overflow-y-auto pr-1 custom-scrollbar">
                         <!-- Tasks dynamically injected -->
                     </div>
                 </section>
@@ -541,7 +540,7 @@ ${todayMonth}/${todayDate + 7}
             let html = '';
 
             for (let i = 0; i < firstDay; i++) {
-                html += `<div class="bg-slate-50/50 rounded-xl p-1 border border-slate-100 opacity-40"></div>`;
+                html += `<div class="bg-slate-50/40 rounded-lg p-1 border border-slate-100/60 opacity-30"></div>`;
             }
 
             for (let d = 1; d <= daysInMonth; d++) {
@@ -564,35 +563,65 @@ ${todayMonth}/${todayDate + 7}
                     highlightClass = 'day-cell-test shadow-sm';
                 }
 
-                let borderStyle = isSelected ? 'ring-2 ring-indigo-600 bg-indigo-50/40 border-indigo-300' : 'border-slate-200/80 bg-white hover:border-indigo-300';
-                if (isToday) borderStyle += ' bg-amber-50/40';
+                let borderStyle = isSelected ? 'ring-2 ring-indigo-600 bg-indigo-50/50 border-indigo-400' : 'border-slate-200/80 bg-white hover:border-indigo-300';
+                if (isToday) borderStyle += ' bg-amber-50/50';
 
-                // カテゴリー別ドットカラー
-                const hasEnglish = dayTasks.some(t => t.category === '英語');
-                const hasPhysics = dayTasks.some(t => t.category === '物理');
-                const hasChem = dayTasks.some(t => t.category === '化学');
-                const hasJapanese = dayTasks.some(t => t.category === '国語');
+                // カレンダーセル内に直接表示するタスク・予定リストのHTML生成（最大3件まで表示、超過は+N件表示）
+                const MAX_VISIBLE_ITEMS = 3;
+                let taskChipsHtml = '';
+                
+                if (dayTasks.length > 0) {
+                    taskChipsHtml += `<div class="mt-1 space-y-0.5 overflow-hidden flex-1">`;
+                    const visibleTasks = dayTasks.slice(0, MAX_VISIBLE_ITEMS);
+                    
+                    visibleTasks.forEach(t => {
+                        const isDone = t.status === 'completed';
+                        let chipBg = 'bg-slate-100 text-slate-700 border-slate-200';
+                        
+                        if (isDone) {
+                            chipBg = 'bg-slate-100 text-slate-400 line-through';
+                        } else if (t.type === 'mock' || t.category === '模試' || t.title.includes('模試')) {
+                            chipBg = 'bg-fuchsia-600 text-white font-bold';
+                        } else if (t.type === 'test' || t.category === 'テスト' || t.title.includes('テスト') || t.title.includes('試験')) {
+                            chipBg = 'bg-rose-600 text-white font-bold';
+                        } else if (t.category === '英語') {
+                            chipBg = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                        } else if (t.category === '物理') {
+                            chipBg = 'bg-cyan-50 text-cyan-800 border-cyan-200';
+                        } else if (t.category === '化学') {
+                            chipBg = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                        } else if (t.category === '国語') {
+                            chipBg = 'bg-rose-50 text-rose-800 border-rose-200';
+                        }
+
+                        taskChipsHtml += `
+                            <div class="px-1 py-0.5 text-[9px] sm:text-[10px] leading-tight rounded border truncate font-medium ${chipBg}" title="${escapeHtml(t.title)}">
+                                ${escapeHtml(t.title)}
+                            </div>
+                        `;
+                    });
+
+                    if (dayTasks.length > MAX_VISIBLE_ITEMS) {
+                        taskChipsHtml += `
+                            <div class="text-[9px] text-slate-400 font-bold px-0.5 leading-tight">
+                                +他${dayTasks.length - MAX_VISIBLE_ITEMS}件
+                            </div>
+                        `;
+                    }
+                    taskChipsHtml += `</div>`;
+                }
 
                 html += `
-                    <div onclick="selectDate('${dateStr}')" class="calendar-day-cell cursor-pointer rounded-xl p-1.5 border transition flex flex-col justify-between ${highlightClass || borderStyle}">
+                    <div onclick="selectDate('${dateStr}')" class="calendar-day-cell cursor-pointer rounded-lg p-1 border transition flex flex-col justify-start min-h-[95px] sm:min-h-[110px] ${highlightClass || borderStyle}">
                         <div class="flex items-center justify-between">
-                            <span class="font-bold text-xs ${isToday ? 'w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center' : 'text-slate-700'}">${d}</span>
-                            ${hasMock ? `<span class="px-1 py-0.2 bg-fuchsia-600 text-white font-black rounded text-[9px]">模試</span>` : 
-                              hasTest ? `<span class="px-1 py-0.2 bg-rose-600 text-white font-black rounded text-[9px]">テスト</span>` :
-                              pendingCount > 0 ? `<span class="px-1.5 py-0.2 bg-amber-100 text-amber-800 font-bold rounded-full text-[10px]">${pendingCount}</span>` : ''}
+                            <span class="font-bold text-xs ${isToday ? 'w-4 h-4 sm:w-5 sm:h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[10px] sm:text-xs' : 'text-slate-700'}">${d}</span>
+                            ${hasMock ? `<span class="px-1 text-white font-bold text-[9px] bg-fuchsia-600 rounded">模試</span>` : 
+                              hasTest ? `<span class="px-1 text-white font-bold text-[9px] bg-rose-600 rounded">テスト</span>` :
+                              pendingCount > 0 ? `<span class="px-1 text-amber-800 font-bold bg-amber-100 rounded-full text-[9px]">${pendingCount}</span>` : ''}
                         </div>
 
-                        <!-- Dots for subjects -->
-                        <div class="flex flex-wrap gap-1 my-1">
-                            ${hasEnglish ? `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500" title="英語"></span>` : ''}
-                            ${hasPhysics ? `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500" title="物理"></span>` : ''}
-                            ${hasChem ? `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500" title="化学"></span>` : ''}
-                            ${hasJapanese ? `<span class="w-1.5 h-1.5 rounded-full bg-rose-500" title="国語"></span>` : ''}
-                        </div>
-
-                        <div class="text-[10px] text-slate-500 font-mono truncate font-medium">
-                            ${dayTasks.length > 0 ? (pendingCount === 0 ? '✓完了' : `${dayTasks.length}件`) : ''}
-                        </div>
+                        <!-- セル内予定タイトル一覧 -->
+                        ${taskChipsHtml}
                     </div>
                 `;
             }
